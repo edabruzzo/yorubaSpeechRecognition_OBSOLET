@@ -1,0 +1,18 @@
+CONFIGURAÇÃO PROJETO:
+
+https://www.digitalocean.com/community/tutorials/como-configurar-o-jupyter-notebook-com-python-3-no-ubuntu-18-04-pt
+
+usuario@computador: $ virtualenv environmentYorubaSpeechRecognition/bin/activate
+usuario@computador: $ source environmentYorubaSpeechRecognition/bin/activate
+(environmentYorubaSpeechRecognition) usuario@computador ~/mestrado/yorubaSpeechRecognition $  jupyter notebook
+
+
+PROJETO: 
+
+https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+
+https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
+
+https://www.analyticsvidhya.com/blog/2019/07/learn-build-first-speech-to-text-model-python/
+
+https://realpython.com/python-speech-recognition/
