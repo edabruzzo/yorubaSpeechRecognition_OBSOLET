@@ -52,6 +52,7 @@ class ExtratorAudio(object):
 
 
 if __name__ == '__main__':
+
     extrator = ExtratorAudio()
     extrator.extrairAudioVideos('../../videos/sem_legenda_teste/')
     extrator.extrairAudioVideos('../../videos/')
