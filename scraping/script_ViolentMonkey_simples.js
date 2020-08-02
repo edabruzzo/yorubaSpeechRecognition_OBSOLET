@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New script - harvard.edu
 // @namespace   Violentmonkey Scripts
-// @match       http://ask-dl.fas.harvard.edu/content/10-eji-ogbe
+// @match       http://ask-dl.fas.harvard.edu/content/*
 // @grant       none
 // @version     1.0
 // @author      -
@@ -304,8 +304,20 @@ listaLinks = [
 
 
 
-var linksPagina = document.getElementsByTagName("a")
+
+
+
+
+
+
+
+function obterTranscricoes(){
+
+
+
 var nomeArquivo = window.location.pathname.replace('/content/', '')
+var proximaPagina = document.getElementsByClassName('page-next')[0]
+
 
 //https://www.w3schools.com/js/js_array_iteration.asp
 var i;
@@ -314,29 +326,19 @@ var yorubaText = '';
 var englishText = '';
 
 
-function obterTranscricoes(){
+
+  try{
 
 
 
-
-  for(i=0; i< listaLinks.length; i++ ){
-
-
-    url = 'http://ask-dl.fas.harvard.edu/content/'+listaLinks[i];
-
-    w = window.open(url)
-
-   w.onload = function(){
+var divEnglishParagrafos = document.getElementsByClassName("right odu-transcription rounded-small")[0].children
+var divYorubaParagrafos = document.getElementsByClassName("left odu-transcription rounded-small")[0].children
 
 
-     var divEnglishParagrafos = w.document.getElementsByClassName("right odu-transcription rounded-small")[0].children
-     var divYorubaParagrafos = w.document.getElementsByClassName("left odu-transcription rounded-small")[0].children
 
-       clearInterval(interval);
+     if(divYorubaParagrafos != null && divEnglishParagrafos != null){
 
-     if(divYorubaParagrafos != null){
 
-           setInterval(function(){
 
 
              for (i = 0; i < divYorubaParagrafos.length; i++) {
@@ -348,15 +350,10 @@ function obterTranscricoes(){
 
             console.log(yorubaText);
 
-            download( w, 'YORUBA_'+listaLins[i]+'_.txt', yorubaText);
+            download( 'YORUBA_'+nomeArquivo+'_.txt', yorubaText);
 
 
-           }, interval);
-     }
 
-    if(divEnglishParagrafos != null){
-
-          setInterval(function(){
 
                         for (i = 0; i < divEnglishParagrafos.length; i++) {
 
@@ -367,46 +364,52 @@ function obterTranscricoes(){
 
            console.log(englishText);
 
-           download( w, 'ENGLISH'+listaLins[i]+'_.txt', englishText);
+           download('ENGLISH'+nomeArquivo+'_.txt', englishText);
 
 
-          }, interval);
+
 
     }
 
 
-    divYorubaParagrafos = null;
-    divEnglishParagrafos = null;
-    yorubaText = '';
-    englishText = '';
+  }catch(e){
 
 
-
-     }
-
-
-     //w.close();
-
-    break;
+    console.log('Não possui texto em Yorubá')
 
 
-      };
+  }finally{
+
+  divYorubaParagrafos = null;
+  divEnglishParagrafos = null;
+  yorubaText = '';
+  englishText = '';
+  nomeArquivo = null;
 
 
+  console.log('Proxima página: '+proximaPagina.href)
+
+  setTimeout(function(){
+
+         proximaPagina.click();
+
+  }, interval)
 
 
-}
+  }
+
+    }
 
 
 
 //https://stackoverflow.com/questions/2897619/using-html5-javascript-to-generate-and-save-a-file
-function download(w2, filename, text) {
-    var pom = w2.document.createElement('a');
+function download(filename, text) {
+    var pom = document.createElement('a');
     pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
     pom.setAttribute('download', filename);
 
     if (document.createEvent) {
-        var event = w2.document.createEvent('MouseEvents');
+        var event = document.createEvent('MouseEvents');
         event.initEvent('click', true, true);
         pom.dispatchEvent(event);
     }
@@ -433,4 +436,9 @@ function imprimeLinks(){
 
 
 
+
+
+
+
 obterTranscricoes();
+

@@ -22,3 +22,41 @@ https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognitio
 https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
 https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
 https://realpython.com/python-speech-recognition/
+
+DATASETS
+http://www.africa.uga.edu/Yoruba/lessons.html
+http://ask-dl.fas.harvard.edu/odu-ifa
+https://library.columbia.edu/libraries/global/virtual-libraries/african_studies/languages.html
+
+BIBLIA COM AUDIO
+OTIMA FONTE
+https://www.bible.com/ka/bible/207/GEN.1.bm
+https://live.bible.is/bible/YORYOR/MAT/1
+https://live.bible.is/bible/YORYOR/ROM/1
+https://www.faithcomesbyhearing.com/audio-bibles/bible-recordings
+https://live.bible.is/bible/PORB09/ROM/1
+
+INICIATIVAS
+
+http://laspretas.com.br/cultura-yoruba-atraves-do-idioma/
+https://youtu.be/cmmPrdorfV4
+http://www.orishaimage.com/blog/course
+
+
+
+PESSOAS
+https://bowdoin.academia.edu/AyodejiOgunnaike/CurriculumVitae
+
+
+
+DIVERSOS
+https://www.researchgate.net/publication/309269940_A_Discourse_-Structural_Analysis_of_Yoruba_Proverbs_in_Interaction
+
+BIBLIA - AUDIO
+https://www.faithcomesbyhearing.com/audio-bibles/resources
+https://www.faithcomesbyhearing.com/news/blog-post/dbp-bible-content-brain
+https://archive.org/details/rosettaproject_yor_gen-1
+https://www.bible.com/bible/207/EXO.3.BM
+
+TRADUÇÕES YORUBA-INGLES
+https://en.glosbe.com/en/yo/istanbul
