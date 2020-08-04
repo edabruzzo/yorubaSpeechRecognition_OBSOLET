@@ -1,0 +1,7 @@
+class EnumListaLinksBible(object):
+
+    listaLinks = [
+
+'https://content.cdn.dbp-prod.dbp4.org/audio/YORYOR/YORUBSN2DA/B06___01_Romans______YORUBSN2DA.mp3?x-amz-transaction=6176494&Expires=1596553599&Signature=CleeGlRQgi3BfyFXtDSHVlToZ3sQiWcJXqydcY3tcldayS0QXGS7W42xdoqz7DOBxUqntsqVfZcN0gWg2dI2Otur2XN7dxpOMkTVhC4vQXV~YGa8oPpWqdyvzNOeQ6ab-MHIfc5ugWc1Cdkcrx9DxNMhWQ8xCH7qSjHxY3ufy7wnNMqTJhmVSaZqsUhRkeu3lApriw7gkGZyOIrHq3xvUwwGeLQzufPk8-jd0tzR-QUS-chlKWqRCySa0-mmmBdVNPXzRNm4bHb6D1b0-n0Jjgn7oSaLSLZjq-hGnHGbMZxIZZwZUvaaLmVbZCiUFyDeuJzYoGMWzOVj5BwKhML3kA__&Key-Pair-Id=APKAI4ULLVMANLYYPTLQ'
+
+]

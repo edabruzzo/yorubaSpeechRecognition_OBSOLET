@@ -28,6 +28,7 @@ http://www.africa.uga.edu/Yoruba/lessons.html
 http://ask-dl.fas.harvard.edu/odu-ifa
 https://library.columbia.edu/libraries/global/virtual-libraries/african_studies/languages.html
 
+
 BIBLIA COM AUDIO
 OTIMA FONTE
 https://www.bible.com/ka/bible/207/GEN.1.bm
@@ -51,6 +52,8 @@ https://bowdoin.academia.edu/AyodejiOgunnaike/CurriculumVitae
 
 DIVERSOS
 https://www.researchgate.net/publication/309269940_A_Discourse_-Structural_Analysis_of_Yoruba_Proverbs_in_Interaction
+https://aws.amazon.com/pt/blogs/machine-learning/create-video-subtitles-with-translation-using-machine-learning/
+
 
 BIBLIA - AUDIO
 https://www.faithcomesbyhearing.com/audio-bibles/resources
