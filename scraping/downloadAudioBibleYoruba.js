@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name        New script - bible.is
 // @namespace   Violentmonkey Scripts
-// @match       https://live.bible.is/bible/YORYOR/ROM/1
+// @match       https://live.bible.is/bible/*
 // @grant       none
 // @version     1.0
 // @author      -
@@ -60,15 +60,18 @@ var downloading = browser.downloads.download({
 downloading.then(onStartedDownload, onFailed);
 */
 
-
+/*
 
 //<a href="<url-goes-here>" data-downloadurl="audio/mpeg:<filename-goes-here>:<url-goes-here>" download="<filename-goes-here>">Click here to download the file</a>
+
+function downloadArquivoAudio(){
+
+
 
 
 
 var downloadUrlAudio = document.getElementsByClassName('audio-player')[0].src;
 var nomeArquivoAudio = window.location.pathname + '.mp3';
-
 
 
 //https://stackoverflow.com/questions/16267017/force-download-an-audio-stream
@@ -102,6 +105,9 @@ xhr.onload = function (e) {
 xhr.send();
 
 
+}
+
+*/
 
 
 
@@ -138,3 +144,139 @@ function downloadAudiofile() {
 
 downloadAudiofile();
 */
+
+
+
+//https://stackoverflow.com/questions/2897619/using-html5-javascript-to-generate-and-save-a-file
+function download(filename, text) {
+    var pom = document.createElement('a');
+    pom.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+    pom.setAttribute('download', filename);
+
+    if (document.createEvent) {
+        var event = document.createEvent('MouseEvents');
+        event.initEvent('click', true, true);
+        pom.dispatchEvent(event);
+    }
+    else {
+        pom.click();
+    }
+}
+
+
+function extrairTexto(){
+
+  textoYoruba = document.getElementsByClassName('chapter')[0].textContent.replace('<br>', '\n').replace(new RegExp("[0-9]"), " ");
+
+  console.log(textoYoruba);
+
+  var nomeArquivoTexto = window.location.pathname + '.txt';
+
+  download(nomeArquivoTexto, textoYoruba);
+
+
+}
+
+
+function extrairLinkAudio(){
+
+  linkAudio = document.getElementsByTagName('audio')[0].src
+
+  var nomeArquivoLinkAudio = window.location.pathname + '_linkAudio_.txt';
+
+  download(nomeArquivoLinkAudio, linkAudio )
+
+
+}
+
+
+function clicarProximoLink(){
+
+      //links = document.getElementsByClassName('chapter-box');
+      //links[1].click();
+
+    next = document.getElementsByClassName('chapter')[0].dataset.nextid;
+  //https://stackoverflow.com/questions/19569656/javascript-regex-optional-character/19569846
+
+
+  //1CO10
+  regexp1 = /(\d+)(\w+)(\d+\d+)/
+  resultado1 = next.match(regexp1);
+
+
+  //1CO1
+  regexp2 = /(\d+)(\w+)(\d+)/
+  resultado2 = next.match(regexp2);
+
+
+  //MAT1
+  regexp3 = /(\w+)(\d+)/
+  resultado3 = next.match(regexp3);
+
+  //MAT10
+  regexp4 = /(\w+)(\d+\d+)/
+  resultado4 = next.match(regexp4);
+
+
+  proximoLink = '';
+
+
+    if(resultado1 ){
+  //EXEMPLO: 1CO11
+    proximoLink = next.replace(regexp1, "$1$2/$3")
+  }
+
+
+    if(resultado2 ){
+    //EXEMPLO: 1CO1
+    proximoLink = next.replace(regexp2, "$1$2/$3")
+  }
+
+
+
+  if(resultado3){
+    //MAT1
+    proximoLink = next.replace(regexp3, "$1/$2")
+  }
+
+
+    if(resultado4 ){
+      //exemplo: MAT10
+    proximoLink = next.replace(regexp4, "$1/$2")
+  }
+
+
+  console.log('R1: '+resultado1)
+  console.log('R2: '+resultado2)
+  console.log('R3: '+resultado3)
+  console.log('R4: '+resultado4)
+  console.log(proximoLink)
+
+
+
+
+
+    location.assign('https://live.bible.is/bible/'+linguaAlvo+'/'+proximoLink);
+
+
+
+  }
+
+//linguaAlvo = 'PORB09'
+linguaAlvo = 'YORYOR'
+
+window.onload = function(){
+
+  extrairTexto();
+  extrairLinkAudio();
+
+
+  setTimeout(clicarProximoLink(), 5000);
+
+
+}
+
+//window.close();
+
+
+
