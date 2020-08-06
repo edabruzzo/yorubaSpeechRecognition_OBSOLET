@@ -3,11 +3,20 @@
 # Sample Python code for youtube.channels.list
 # See instructions for running these code samples locally:
 # https://developers.google.com/explorer-help/guides/code_samples#python
-#https://developers.google.com/youtube/v3/quickstart/python
+# https://developers.google.com/youtube/v3/quickstart/python
+# https://github.com/khuangaf/ITRI-speech-recognition-dataset-generation/blob/master/src/download_videos.py
+# https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
+# https://github.com/nikhilkumarsingh/YouTubeAPI-Examples/blob/master/4.Channel-Vids.ipynb
+# https://pypi.org/project/pytube3/
 
-import os
+
+
+
+
 from googleapiclient.discovery import build
-
+from pytube import YouTube
+import subprocess
+import os
 
 
 class YoutubeVideosExtractor(object):
@@ -51,6 +60,7 @@ class YoutubeVideosExtractor(object):
             video_id = video['contentDetails']['videoId']
             self.listaVideos.append(self.urlBaseYoutube + video_id)
 
+
     def obterVideosCanal(self, id_canal):
 
         # get Uploads playlist id
@@ -66,7 +76,7 @@ class YoutubeVideosExtractor(object):
         while 1:
             response = self.youtube.playlistItems().list(playlistId=playlist_id,
                                                part='snippet',
-                                               maxResults=100,
+                                               maxResults=1000,
                                                pageToken=next_page_token).execute()
             lista_videos += response['items']
             nextPageToken = response.get('nextPageToken')
@@ -75,6 +85,56 @@ class YoutubeVideosExtractor(object):
                 break
 
         return lista_videos
+
+
+    def extrairAudioVideo(self, fileName):
+
+        path = '../../youtubeVideos'
+        video_path = os.path.join(path, fileName)
+        audio_path = video_path.replace('mp4', 'mp3')
+
+        comando = ['ffmpeg', '-i', video_path, '-f', 'mp3' ,'-ab', '192000', '-vn', '-y', audio_path]
+
+        # https://janakiev.com/blog/python-shell-commands/
+        ffmpeg = subprocess.run(comando,
+                                stdin=subprocess.PIPE,
+                                stdout=subprocess.PIPE,
+                                stderr=subprocess.PIPE,
+                                universal_newlines=True
+                                )
+
+        for line in ffmpeg.stdout:
+            print(line.strip())
+
+
+
+    def downloadVideoYoutube(self, idVideo):
+
+        try:
+
+            path = '../../youtubeVideos/'
+
+            try:
+
+                yt = YouTube(self.urlBaseYoutube + idVideo)
+                # https://pypi.org/project/pytube3/
+                streams = yt.streams
+                video = streams.filter(progressive=True, file_extension='mp4').order_by('resolution')[-1]
+                video.download(path)
+                self.extrairAudioVideo(video.default_filename)
+                print("Vídeo baixado: {id} ".format(id=idVideo))
+
+                #return True
+
+            except Exception as e:
+                print("- {exception}".format(exception=e))
+                print("- {id} Vídeo não pôde ser baixado".format(id=idVideo))
+                #return False
+        except Exception as e:
+            print('Não foi possível efetuar o download do vídeo: {}'.format(e))
+            #return False
+
+
 
 
 if __name__ == '__main__':
@@ -90,7 +150,10 @@ if __name__ == '__main__':
     #https://www.youtube.com/channel/UCzpkJhafrktQJDDqN5Rxg-Q/playlists
     #Nalingo Naija
     listaVideos = youtubeApi.obterVideosCanal('UCzpkJhafrktQJDDqN5Rxg-Q')
+    print('Foram obtidos {} vídeos'.format(len(listaVideos)))
+
 
     for video in listaVideos:
         videoId = video['snippet']['resourceId']['videoId']
-        youtubeApi.listaVideos.append(youtubeApi.urlBaseYoutube + videoId)
+        print(video['snippet']['title'])
+        youtubeApi.downloadVideoYoutube(videoId)
