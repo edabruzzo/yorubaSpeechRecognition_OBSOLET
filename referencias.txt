@@ -11,7 +11,14 @@ PROJETO:
 
 https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
 
+---------
 https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
+------ YoutubeAPI
+https://developers.google.com/youtube/v3/code_samples/python?hl=pt-br
+https://developers.google.com/youtube/v3/docs
+https://developers.google.com/youtube/v3/code_samples/code_snippets?apix=true
+
+-------
 
 https://www.analyticsvidhya.com/blog/2019/07/learn-build-first-speech-to-text-model-python/
 
