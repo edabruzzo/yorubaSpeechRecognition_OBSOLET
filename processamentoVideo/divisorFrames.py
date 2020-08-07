@@ -3,6 +3,15 @@ import os
 import subprocess
 from joblib import Parallel, delayed
 
+'''
+Referências:
+
+https://wiki.python.org/moin/ParallelProcessing
+https://trac.ffmpeg.org/wiki/Create%20a%20thumbnail%20image%20every%20X%20seconds%20of%20the%20video
+https://github.com/khuangaf/ITRI-speech-recognition-dataset-generation/blob/master/src/split_videos.py
+https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
+
+'''
 class DivisorFrames(object):
 
     def obterFrames(self, nomeVideo, caminhoFrames):
@@ -25,6 +34,7 @@ if __name__ == '__main__':
     numeroThreads = len(arquivosVideo)
 
     try:
+
         import multiprocessing as mp
         # https://www.machinelearningplus.com/python/parallel-processing-python/
         pool = mp.Pool(mp.cpu_count())
