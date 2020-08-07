@@ -1,17 +1,21 @@
 # -*- coding: utf-8 -*-
 
-# Sample Python code for youtube.channels.list
-# See instructions for running these code samples locally:
-# https://developers.google.com/explorer-help/guides/code_samples#python
-# https://developers.google.com/youtube/v3/quickstart/python
-# https://github.com/khuangaf/ITRI-speech-recognition-dataset-generation/blob/master/src/download_videos.py
-# https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
-# https://github.com/nikhilkumarsingh/YouTubeAPI-Examples/blob/master/4.Channel-Vids.ipynb
-# https://pypi.org/project/pytube3/
+'''
+ https://developers.google.com/api-client-library/dotnet/guide/aaa_client_secrets
+ https://console.developers.google.com/apis/credentials?project=uplifted-env-285612
+ https://developers.google.com/explorer-help/guides/code_samples#python
+ https://developers.google.com/youtube/v3/quickstart/python
+ https://developers.google.com/youtube/v3/code_samples/code_snippets?apix=true
+ https://github.com/khuangaf/ITRI-speech-recognition-dataset-generation/blob/master/src/download_videos.py
+ https://towardsdatascience.com/automatic-speech-recognition-data-collection-with-youtube-v3-api-mask-rcnn-and-google-vision-api-2370d6776109
+ https://github.com/nikhilkumarsingh/YouTubeAPI-Examples/blob/master/4.Channel-Vids.ipynb
+ https://pypi.org/project/pytube3/
+ https://github.com/erykml/medium_articles/blob/master/Computer%20Vision/downloading_youtube_videos.ipynb
+ https://towardsdatascience.com/the-easiest-way-to-download-youtube-videos-using-python-2640958318ab
+ https://pypi.org/project/pytube3/
+ https://stackoverflow.com/questions/47420304/download-video-in-mp3-format-using-pytube
 
-
-
-
+'''
 
 from googleapiclient.discovery import build
 from pytube import YouTube
@@ -20,13 +24,13 @@ import os
 
 
 class YoutubeVideosExtractor(object):
+
     # developer keys for Youtube V3 API
     DEVELOPER_KEY_FILE = "../../yorubaAPIKey"
-
     DEVELOPER_KEY = open(DEVELOPER_KEY_FILE, 'r', encoding="utf8").read()
-
     YOUTUBE_API_SERVICE_NAME = "youtube"
     YOUTUBE_API_VERSION = "v3"
+    client_secrets_file = "../../client_secret.json"
 
     # creating youtube resource object for interacting with api
     youtube = build(YOUTUBE_API_SERVICE_NAME,
@@ -34,7 +38,7 @@ class YoutubeVideosExtractor(object):
                     developerKey=DEVELOPER_KEY)
 
     urlBaseYoutube = "https://www.youtube.com/watch?v="
-    listaVideos = []
+
 
 
     def obterVideosYoruba(self, nomeLista=None, id_lista=None ):
@@ -43,10 +47,6 @@ class YoutubeVideosExtractor(object):
         # *DO NOT* leave this option enabled in production.
         #os.environ["OAUTHLIB_INSECURE_TRANSPORT"] = "1"
 
-        api_service_name = "youtube"
-        api_version = "v3"
-        client_secrets_file = "../../client_secret.json"
-        API_KEY = "../../yorubaAPIKey"
         # search for the first playlist result given a drama name
         search_response = self.youtube.search().list(q=nomeLista, type="playlist", part="id", maxResults=1).execute()
         result = search_response.get("items", [])
@@ -157,3 +157,13 @@ if __name__ == '__main__':
         videoId = video['snippet']['resourceId']['videoId']
         print(video['snippet']['title'])
         youtubeApi.downloadVideoYoutube(videoId)
+
+    # https://www.youtube.com/watch?v=5xxEvVxXyMY - Itan Jesu fiimu • Yoruba Yooba Yariba • Story of Jesus Movie
+    # Necessário verificar Evangelho de João
+    # This film features life and toils of Jesus Christ, depicted as written in the Gospel of John.
+    # youtubeApi.downloadVideoYoutube('5xxEvVxXyMY')
+
+    # https://www.youtube.com/watch?v=aTXbOzzcatw
+    # "New World Order Bible Versions" (Yoruba subtitles)
+
+    #https://www.youtube.com/watch?v=eYaDMptJQYE&list=PLC0Qb6b17wHHtOziRpgOkbDnqtZANSyxe&index=9
