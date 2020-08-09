@@ -2,16 +2,21 @@
 import os
 import re
 import magic
+import librosa
+from treinamento import audio
 
 '''
 REFERÊNCIAS: 
 
 https://panda.ime.usp.br/pensepy/static/pensepy/10-Arquivos/files.html
+https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+https://medium.com/@patrickbfuller/librosa-a-python-audio-libary-60014eeaccfb
 
 '''
 class TreinamentoCNN(object):
 
-    def carregarAudiosTreinamento(self):
+
+    def obterDicionarioTreinamento(self):
 
         caminho_arquivos_treinamento = '../../corpus'
         treinamento_dicionario = {}
@@ -53,10 +58,35 @@ class TreinamentoCNN(object):
 
         return treinamento_dicionario
 
+    listaAudiosTreinamento = []
+
+    def carregarAudiosTreinamento(self, nome_audio, transcricao):
 
 
+        caminho_arquivos_treinamento = '../../corpus'
+        for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
+            for arquivo in arquivos:
+                if nome_audio+'.wav' in arquivo:
+                    audio_time_series, sample_rate = librosa.load(os.path.join(root, nome_audio+'.wav'), sr = 16000)
+                    audioObj = audio.Audio(audio_time_series, transcricao)
+                    self.listaAudiosTreinamento.append(audioObj)
+
+
+
+
+from joblib import Parallel, delayed
+import time
 
 if __name__ == '__main__':
 
+    inicio = time.clock()
+
     treinamento = TreinamentoCNN()
-    dicionario_treinamento = treinamento.carregarAudiosTreinamento()
+    dicionario_treinamento = treinamento.obterDicionarioTreinamento()
+    parallel = Parallel(backend="threading", verbose=1)
+    parallel(delayed(treinamento.carregarAudiosTreinamento)(key, dicionario_treinamento[key]) for key in dicionario_treinamento)
+
+    tempo_processamento = time.clock() - inicio
+
+    print(treinamento.listaAudiosTreinamento[1])
+    print('Tempo de processamento {}'.format(tempo_processamento))
