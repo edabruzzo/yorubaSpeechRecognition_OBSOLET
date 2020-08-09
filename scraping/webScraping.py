@@ -16,6 +16,7 @@ class Web_Scraping(object):
 
         response = requests.get(url_base, headers=self.obterHeaders())
         elementos = []
+        elementos = []
         soup = BeautifulSoup(response.text, 'html.parser')
         #elementos = soup('a')
         elementos = soup.find_all('ul')

@@ -2,10 +2,11 @@
 # from textblob import TextBlob
 import pytesseract
 import cv2
+import numpy as np
 # import multiprocessing as mp
 from joblib import Parallel, delayed
 import os
-
+from PIL import Image
 
 '''
 REFERÊNCIAS: 
@@ -43,17 +44,34 @@ class TranscricaoVideo(object):
 
     def transcrever_frame(self, caminho_frame):
 
+        '''
         image = cv2.imread(caminho_frame)
         rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         options = "-l {} --psm {}".format('yor', '6')
         textoYoruba = pytesseract.image_to_string(rgb, config=options)
         print(textoYoruba)
+        '''
 
+        imagem = Image.open(caminho_frame).convert('RGB')
+        npimagem = np.asarray(imagem).astype(np.uint8)
+        npimagem[:, :, 0] = 0  # zerando o canal R (RED)
+        npimagem[:, :, 2] = 0  # zerando o canal B (BLUE)
+        im = cv2.cvtColor(npimagem, cv2.COLOR_RGB2GRAY)
+        ret, thresh = cv2.threshold(im, 127, 255, cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+        binimagem = Image.fromarray(thresh)
+        phrase = pytesseract.image_to_string(binimagem, lang='yor')
+
+        # impressão do resultado
+        print(phrase)
 
     def transcrever_video(self, nomeVideo):
 
         caminho_frames = os.path.join('../../youtubeVideos/frames')
-        frames = [os.path.join(caminho_frames, frame) for frame in os.listdir(caminho_frames) if nomeVideo in frame]
+
+        inicioFrame_list = ['_frame_0001_', '_frame_0002_', '_frame_0003_', '_frame_0004_', '_frame_0005_',
+                            '_frame_0006_']
+        # https://stackoverflow.com/questions/8122079/python-how-to-check-a-string-for-substrings-from-a-list
+        frames = [os.path.join(caminho_frames, frame) for frame in os.listdir(caminho_frames) if (nomeVideo in frame and not any(inicioFrame in frame for inicioFrame in inicioFrame_list))]
 
         numeroThreads = len(frames)
         parallel = Parallel(numeroThreads, backend="threading", verbose=1)
