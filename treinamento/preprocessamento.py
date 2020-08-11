@@ -7,6 +7,7 @@ from treinamento import audio
 import numpy as np
 #from keras.utils import np_utils
 from sklearn.feature_extraction.text import CountVectorizer
+from joblib import Parallel, delayed
 
 '''
 REFERÊNCIAS: 
@@ -37,7 +38,7 @@ https://datascience.stackexchange.com/questions/27634/how-to-convert-a-mel-spect
 
 
 '''
-class TreinamentoCNN(object):
+class PreProcessamento(object):
 
 
     def obterDicionarioTreinamento(self):
@@ -82,90 +83,105 @@ class TreinamentoCNN(object):
 
         return treinamento_dicionario
 
-    listaAudiosTreinamento = []
 
 
-    def carregarAudiosTreinamento(self, nome_audio, label_encoded):
+    listaAudios_LogEnergy_Labels_Econded_Treinamento = []
+
+    dicionario_treinamento_encoded = {}
+
+    def montarListaCaminhosArquivosAudio(self, nome_audio, label_encoded):
 
         caminho_arquivos_treinamento = '../../corpus'
-        dimensao_maxima = 10
 
         for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
+
             for arquivo in arquivos:
 
-                if nome_audio+'.wav' in arquivo:
-
-                    sinal_audio, sample_rate = librosa.load(os.path.join(root, nome_audio+'.wav'), sr = 16000)
-
-                    espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
-
-                    '''
-                                        https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
-
-                                        The experimental results in Section V show
-                                        a consistent improvement in overall system performance by
-                                        using the log-energy feature. There has been some question
-                                        as to whether this improvement holds in larger-scale ASR
-                                        tasks [40]. Nevertheless, these experiments at least show that
-                                        nothing in principle prevents frequency-independent features
-                                        such as log-energy from being accommodated within a CNN
-                                        architecture when they stand to improve performance. (p.1539)   
-                                        https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/CNN_ASLPTrans2-14.pdf?irgwc=1&OCID=AID2000142_aff_7806_1246483&tduid=%28ir__3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00%29%287806%29%281246483%29%28%283283fab34b8e9cb7166fb504c2f02716%29%2881561%29%28686431%29%28at106140_a107739_m12_p12460_cBR%29%28%29%29%283283fab34b8e9cb7166fb504c2f02716%29&irclickid=_3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00 
-
-                                        https://stackoverflow.com/questions/60492462/mfcc-python-completely-different-result-from-librosa-vs-python-speech-features                    
-                                        
-                                        https://pytorch.org/audio/transforms.html#spectrogram
-                                        
-                                        https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-
-                                        http://man.hubwiz.com/docset/LibROSA.docset/Contents/Resources/Documents/_modules/librosa/core/spectrum.html#power_to_db
+                if nome_audio +'.wav' in arquivo:
+                    caminho_audio = os.path.join(root, nome_audio + '.wav')
+                    self.dicionario_treinamento_encoded[caminho_audio] = label_encoded
 
 
-                                        def power_to_db(S, ref=1.0, amin=1e-10, top_db=80.0):
-                                        Convert a power spectrogram (amplitude squared) to decibel (dB) units
 
-                                        This computes the scaling ``10 * log10(S / ref)`` in a numerically
-                                        stable way.
-                                        
-                                        TECHNIQUES FOR FEATURE EXTRACTION IN SPEECH
-                                        RECOGNITION SYSTEM : A COMPARATIVE STUDY 
-                                        https://arxiv.org/pdf/1305.1145.pdf
-                                        
-                                        https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
-                                        https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
-                                        
-                                        Não estou usando DCT, mas log-energy 
-                                        https://en.wikipedia.org/wiki/Discrete_cosine_transform
-                                        
-                                        https://docs.python.org/2/tutorial/datastructures.html#dictionaries
-                                        https://developer.rhino3d.com/guides/rhinopython/primer-101/6-tuples-lists-dictionaries/
 
-                    '''
 
-                    log_energy_espectograma = librosa.power_to_db(espectograma)
+    def carregarListaGlobalAudiosTreinamento(self, caminho_audio, label_encoded):
 
-                    '''
-                    Garante que os vetores mfcc tenham o mesmo tamanho fixo através de um padding de 0 
-                    em volta do vetor mfcc, caso ele tenha dimensão menor do que um valor máximo pré-fixado
+        dimensao_maxima = 100
 
-                    https://www.kaggle.com/ilyamich/mfcc-implementation-and-tutorial
+        sinal_audio, sample_rate = librosa.load(caminho_audio, sr=16000)
 
-                    How to normalize MFCCs
-                    https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
+        espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
 
-                    '''
+        '''
+                            https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
 
-                    if (dimensao_maxima > log_energy_espectograma.shape[1]):
+                            The experimental results in Section V show
+                            a consistent improvement in overall system performance by
+                            using the log-energy feature. There has been some question
+                            as to whether this improvement holds in larger-scale ASR
+                            tasks [40]. Nevertheless, these experiments at least show that
+                            nothing in principle prevents frequency-independent features
+                            such as log-energy from being accommodated within a CNN
+                            architecture when they stand to improve performance. (p.1539)   
+                            https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/CNN_ASLPTrans2-14.pdf?irgwc=1&OCID=AID2000142_aff_7806_1246483&tduid=%28ir__3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00%29%287806%29%281246483%29%28%283283fab34b8e9cb7166fb504c2f02716%29%2881561%29%28686431%29%28at106140_a107739_m12_p12460_cBR%29%28%29%29%283283fab34b8e9cb7166fb504c2f02716%29&irclickid=_3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00 
 
-                        padding = dimensao_maxima - log_energy_espectograma.shape[1]
-                        mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)), mode='constant')
+                            https://stackoverflow.com/questions/60492462/mfcc-python-completely-different-result-from-librosa-vs-python-speech-features                    
 
-                    # Else cutoff the remaining parts
-                    else:
-                        mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
+                            https://pytorch.org/audio/transforms.html#spectrogram
 
-                    audioObj = audio.Audio(log_energy_espectograma, label_encoded)
-                    self.listaAudiosTreinamento.append(audioObj)
+                            https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
+
+                            http://man.hubwiz.com/docset/LibROSA.docset/Contents/Resources/Documents/_modules/librosa/core/spectrum.html#power_to_db
+
+
+                            def power_to_db(S, ref=1.0, amin=1e-10, top_db=80.0):
+                            Convert a power spectrogram (amplitude squared) to decibel (dB) units
+
+                            This computes the scaling ``10 * log10(S / ref)`` in a numerically
+                            stable way.
+
+                            TECHNIQUES FOR FEATURE EXTRACTION IN SPEECH
+                            RECOGNITION SYSTEM : A COMPARATIVE STUDY 
+                            https://arxiv.org/pdf/1305.1145.pdf
+
+                            https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
+                            https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
+
+                            Não estou usando DCT, mas log-energy 
+                            https://en.wikipedia.org/wiki/Discrete_cosine_transform
+
+                            https://docs.python.org/2/tutorial/datastructures.html#dictionaries
+                            https://developer.rhino3d.com/guides/rhinopython/primer-101/6-tuples-lists-dictionaries/
+
+        '''
+
+        log_energy_espectograma = librosa.power_to_db(espectograma)
+
+        '''
+        Garante que os vetores mfcc tenham o mesmo tamanho fixo através de um padding de 0 
+        em volta do vetor mfcc, caso ele tenha dimensão menor do que um valor máximo pré-fixado
+
+        https://www.kaggle.com/ilyamich/mfcc-implementation-and-tutorial
+
+        How to normalize MFCCs
+        https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
+
+        '''
+
+        if (dimensao_maxima > log_energy_espectograma.shape[1]):
+
+            padding = dimensao_maxima - log_energy_espectograma.shape[1]
+            mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
+                                                         mode='constant')
+
+        # Else cutoff the remaining parts
+        else:
+            mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
+
+        audioObj = audio.Audio(log_energy_espectograma, label_encoded)
+
+        self.listaAudios_LogEnergy_Labels_Econded_Treinamento.append(audioObj)
 
 
     def converterTranscricaoCategoricalDecoder(self, dicionario_treinamento_raw):
@@ -187,22 +203,34 @@ class TreinamentoCNN(object):
         '''
 
         # labels_encoded[0].vocabulary_   devolve o índice de cada palavra
-        labels_encoded = self.vetorizador(dicionario_treinamento_raw.values())
+        #labels_encoded = self.vetorizador(dicionario_treinamento_raw.values())
         #print(labels_encoded[0].inverse_transform(labels_encoded[1]))
+
+        vetorizador = CountVectorizer()
+        vetorizador.fit(dicionario_treinamento_raw.values())
+
+        inicio_vetorizacao = time.clock()
+
+        for key, value in dicionario_treinamento_raw.items():
+            vetor_encoded = vetorizador.transform([value])
+            dicionario_treinamento_raw[key] = vetor_encoded
+
+        processamento_vetorizacao = time.clock() - inicio_vetorizacao
+        print('Tempo de processamento da vetorizacao {}'.format(processamento_vetorizacao))
 
         '''
         Testando voltar para a transcrição original após vetorização
         Preciso garantir aqui que as transcrições vetorizadas combinem exatamente com os audios
-
         '''
+        for key, value in dicionario_treinamento_raw.items():
+            transcricao_convertida_teste = vetorizador.inverse_transform(value)
+            print(transcricao_convertida_teste)
+            break
 
-        #transcricao_convertida_teste = labels_encoded[0].inverse_transform(list(dicionario_labels_encoded.values())[0])
-        #print(transcricao_convertida_teste)
-
-        #return dicionario_labels_encoded
+        return dicionario_treinamento_raw
 
 
-    def vetorizador(self, listaSentencas):
+    def vetorizador_sequence(self, vetorizador, listaSentencas):
 
         '''
 
@@ -241,40 +269,40 @@ class TreinamentoCNN(object):
         Length: (2,1 GB)
 
         '''
-
-        vetorizador = CountVectorizer()
-        vetorizador.fit(listaSentencas)
-        print(vetorizador.vocabulary_)
-        vetor_labels = vetorizador.transform(listaSentencas)
-        print(vetor_labels.shape)
-        print(type(vetor_labels))
-        print(vetor_labels.toarray())
-        print(vetorizador.inverse_transform(vetor_labels))
-
-        return vetorizador, vetor_labels
+        pass
 
 
 
+    def obterDados(self):
 
-from joblib import Parallel, delayed
+        inicio = time.clock()
+
+        treinamento = self
+        dicionario_treinamento_encoded = {}
+
+        dicionario_treinamento_raw = treinamento.obterDicionarioTreinamento()
+        dicionario_treinamento_encoded_nomes_caminho = treinamento.converterTranscricaoCategoricalDecoder(dicionario_treinamento_raw)
+
+        for key, value in dicionario_treinamento_encoded_nomes_caminho.items():
+            treinamento.montarListaCaminhosArquivosAudio(key, value)
+
+        parallel = Parallel(backend="threading", verbose=1)
+        parallel(delayed(treinamento.carregarListaGlobalAudiosTreinamento)(key, treinamento.dicionario_treinamento_encoded[key]) for key in treinamento.dicionario_treinamento_encoded)
+
+        tempo_processamento = time.clock() - inicio
+
+        print(treinamento.listaAudios_LogEnergy_Labels_Econded_Treinamento[0])
+
+        print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
+
+        return treinamento.listaAudios_LogEnergy_Labels_Econded_Treinamento
+
+
+
+
 import time
 
 if __name__ == '__main__':
 
-    inicio = time.clock()
-
-    treinamento = TreinamentoCNN()
-    dicionario_treinamento_raw = treinamento.obterDicionarioTreinamento()
-
-    dicionario_treinamento = treinamento.converterTranscricaoCategoricalDecoder(dicionario_treinamento_raw)
-
-
-    '''
-    parallel = Parallel(backend="threading", verbose=1)
-    parallel(delayed(treinamento.carregarAudiosTreinamento)(key, dicionario_treinamento[key]) for key in dicionario_treinamento)
-
-    tempo_processamento = time.clock() - inicio
-
-    print(treinamento.listaAudiosTreinamento[1])
-    print('Tempo de processamento {}'.format(tempo_processamento))
-    '''
+    listaTreinamento = PreProcessamento().obterDados()
+    print(listaTreinamento)

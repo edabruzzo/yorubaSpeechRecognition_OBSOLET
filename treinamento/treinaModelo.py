@@ -1,3 +1,22 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
+import argparse
+import time
+
+import numpy as np
+import pandas as pd
+
+import tensorflow as tf
+from tensorflow.python.keras.preprocessing import sequence
+from tensorflow.python.keras.preprocessing import text
+
+from sklearn.model_selection import train_test_split
+
+
+
 
 """
 
@@ -15,23 +34,30 @@ https://github.com/google/eng-edu/blob/master/ml/guides/text_classification/trai
 https://developers.google.com/machine-learning/guides/text-classification/conclusion?hl=pl
 
 
+https://towardsdatascience.com/customer-case-study-building-an-end-to-end-speech-recognition-model-in-pytorch-with-assemblyai-473030e47c7c
+
+https://github.com/attardi/CNN_sentence/blob/master/process_data.py
+
+https://scikit-learn.org/stable/modules/multiclass.html
+https://en.wikipedia.org/wiki/Multi-label_classification
+https://keras.io/examples/nlp/text_classification_from_scratch/#two-options-to-vectorize-the-data
+https://www.tensorflow.org/tutorials/text/word_embeddings#encode_each_word_with_a_unique_number
+https://github.com/manashmandal/DeadSimpleSpeechRecognizer
+https://en.wikipedia.org/wiki/Discrete_cosine_transform
+https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
+https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
+
+https://keras.io/examples/audio/speaker_recognition_using_cnn/
+https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+https://medium.com/manash-en-blog/building-a-dead-simple-word-recognition-engine-using-convnet-in-keras-25e72c19c12b
+https://medium.com/@oyewusiwuraola/yor%C3%B9b%C3%A1-word-vector-representation-with-fasttext-fe905bf558ea
+https://fasttext.cc/docs/en/pretrained-vectors.html
+
+
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
-import os
-import argparse
-import time
 
-import numpy as np
-import pandas as pd
 
-import tensorflow as tf
-from tensorflow.python.keras.preprocessing import sequence
-from tensorflow.python.keras.preprocessing import text
-
-from sklearn.model_selection import train_test_split
 
 class TreinaModelo(object):
 
@@ -56,6 +82,7 @@ class TreinaModelo(object):
         """
 
         # References:
+
             https://fasttext.cc/docs/en/pretrained-vectors.html
             Download and uncompress archive from:
             https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.yo.zip
@@ -140,6 +167,9 @@ class TreinaModelo(object):
         https://static.googleusercontent.com/media/research.google.com/pt-BR//pubs/archive/42543.pdf
         Word Embeddings for Speech Recognition
         Samy Bengio and Georg Heigold
+
+        https://www.oreilly.com/library/view/applied-text-analysis/9781491963036/ch04.html
+
   
         '''
         # layer and let it fine-tune to the given dataset.
