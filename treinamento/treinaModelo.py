@@ -1,0 +1,246 @@
+
+"""
+
+
+Module to train sequence model with fine-tuned pre-trained embeddings.
+Vectorizes training and validation texts into sequences and uses that for
+training a sequence model - a sepCNN model. We use sequence model with
+pre-trained embeddings that are fine-tuned for text classification when the
+ratio of number of samples to number of words per sample for the given dataset
+is neither small nor very large (~> 1500 && ~< 15K).
+
+
+
+https://github.com/google/eng-edu/blob/master/ml/guides/text_classification/train_fine_tuned_sequence_model.py
+https://developers.google.com/machine-learning/guides/text-classification/conclusion?hl=pl
+
+
+"""
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
+import os
+import argparse
+import time
+
+import numpy as np
+import pandas as pd
+
+import tensorflow as tf
+from tensorflow.python.keras.preprocessing import sequence
+from tensorflow.python.keras.preprocessing import text
+
+from sklearn.model_selection import train_test_split
+
+class TreinaModelo(object):
+
+    embedding_data_dir = '../../embeddings_yoruba'
+
+    # Limit on the number of features. We use the top 20K features.
+    TOP_K = 20000
+
+    # Range (inclusive) of n-gram sizes for tokenizing text.
+    NGRAM_RANGE = (1, 2)
+
+    # Whether text should be split into word or character n-grams.
+    # One of 'word', 'char'.
+    TOKEN_MODE = 'word'
+
+    # Limit on the length of text sequences. Sequences longer than this
+    # will be truncated.
+    MAX_SEQUENCE_LENGTH = 500
+
+
+    def _get_embedding_matrix(self, word_index):
+        """
+
+        # References:
+            https://fasttext.cc/docs/en/pretrained-vectors.html
+            Download and uncompress archive from:
+            https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.yo.zip
+
+            https://github.com/google/eng-edu/blob/master/ml/guides/text_classification/load_data.py
+            https://developers.google.com/machine-learning/guides/text-classification/conclusion?hl=pl
+        """
+
+        # Read the pre-trained embedding file and get word to word vector mappings.
+        embedding_matrix_all = {}
+
+        fname = os.path.join(self.embedding_data_dir, 'wiki.yo.vec')
+
+        with open(fname) as f:
+            for line in f:  # Every line contains word followed by the vector value
+                values = line.split()
+                word = values[0]
+                coefs = np.asarray(values[1:], dtype='float32')
+                #Montando um dicionário de embedding words com coeficientes
+                embedding_matrix_all[word] = coefs
+
+        # Prepare embedding matrix with just the words in our word_index dictionary
+        num_words = min(len(word_index) + 1, self.TOP_K)
+        embedding_matrix = np.zeros((num_words, embedding_matrix_all.shape))
+
+        for word, i in word_index.items():
+            if i >= self.TOP_K:
+                continue
+            embedding_vector = embedding_matrix_all.get(word)
+            if embedding_vector is not None:
+                # words not found in embedding index will be all-zeros.
+                embedding_matrix[i] = embedding_vector
+        return embedding_matrix
+
+
+    def train_fine_tuned_sequence_model(self, data,
+                                    embedding_data_dir,
+                                    learning_rate=1e-3,
+                                    epochs=1000,
+                                    batch_size=128,
+                                    blocks=2,
+                                    filters=64,
+                                    dropout_rate=0.2,
+                                    embedding_dim=200,
+                                    kernel_size=3,
+                                    pool_size=3):
+
+        # Get the data.
+        (train_audios, train_labels), (val_audios, val_labels) = data
+
+        # Vectorize texts.
+        y_train, y_val, word_index = self.sequence_vectorize(train_labels, val_labels)
+
+        # Number of features will be the embedding input dimension. Add 1 for the
+        # reserved index 0.
+        #num_features = min(len(word_index) + 1, self.TOP_K)
+
+        embedding_matrix = self._get_embedding_matrix()
+
+        loss = 'sparse_categorical_crossentropy'
+        optimizer = tf.keras.optimizers.Adam(lr=learning_rate)
+
+        # Create callback for early stopping on validation loss. If the loss does
+        # not decrease in two consecutive tries, stop training.
+        callbacks = [tf.keras.callbacks.EarlyStopping(
+            monitor='val_loss', patience=2)]
+
+
+        '''
+        
+        Aqui surge uma questão interessante: 
+        
+        Text Word Embeddings estão sendo usadas no modelo como se fossem features e não são !!!
+        As word embeddings fazem parte dos labels a serem preditos e não das features 
+        
+        Nesse momento surge a discussão sobre a necessidade delas e se elas vão atrapalhar o modelo
+        Além disso, surge a questão sobre Acoustic Word Embeddings
+        
+        "Acoustic Word Embedding (AWE) is a fixed-dimensional representation of a variable-length audio signal in an embedding space. The idea of AWEs is quite close to well-known textual word embeddings which create similar vector representations for semantically similar words. However, AWEs aim to model acoustic similarity rather than semantic similarity.
+        https://medium.com/@maobedkova/acoustic-word-embeddings-fc3f1a8f0519
+        
+        https://static.googleusercontent.com/media/research.google.com/pt-BR//pubs/archive/42543.pdf
+        Word Embeddings for Speech Recognition
+        Samy Bengio and Georg Heigold
+  
+        '''
+        # layer and let it fine-tune to the given dataset.
+        model = self.sepcnn_model(blocks=blocks,
+                                     filters=filters,
+                                     kernel_size=kernel_size,
+                                     embedding_dim=embedding_dim,
+                                     dropout_rate=dropout_rate,
+                                     pool_size=pool_size,
+                                     input_shape=train_audios.shape[1:],
+                                     num_classes=len(word_index),
+                                     #num_features=num_features,
+                                     use_pretrained_embedding=True,
+                                     is_embedding_trainable=True,
+                                     embedding_matrix=embedding_matrix)
+
+        # Compile model with learning parameters.
+        model.compile(optimizer=optimizer, loss=loss, metrics=['acc'])
+
+        # Load the weights that we had saved into this new model.
+        model.load_weights('sequence_model_with_pre_trained_embedding.h5')
+
+        # Train and validate model.
+        history = model.fit(train_audios,
+                        train_labels,
+                        epochs=epochs,
+                        callbacks=callbacks,
+                        validation_data=(val_audios, val_labels),
+                        verbose=2,  # Logs once per epoch.
+                        batch_size=batch_size)
+
+        # Print results.
+        history = history.history
+        print('Validation accuracy: {acc}, loss: {loss}'.format(
+            acc=history['val_acc'][-1], loss=history['val_loss'][-1]))
+
+        # Save model.
+        model.save('tweet_weather_sepcnn_fine_tuned_model.h5')
+        return history['val_acc'][-1], history['val_loss'][-1]
+
+    def _load_and_shuffle_data(self, data, seed=123):
+
+        """
+
+        """
+        np.random.seed(seed)
+
+        return data.reindex(np.random.permutation(data.index))
+
+
+    def _split_training_and_validation_sets(self, audios, labels):
+
+
+        # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+        X_train, X_test, y_train, y_test = train_test_split(np.array(audios),
+                                                    np.array(labels),
+                                                    stratify=labels,
+                                                    test_size=self.validation_split,
+                                                    random_state=777, shuffle=True)
+
+        return ((X_train, y_train), (X_test, y_test))
+
+
+
+
+    def sequence_vectorize(self, train_labels, val_labels):
+
+        # Create vocabulary with training texts.
+        tokenizer = text.Tokenizer(num_words=self.TOP_K)
+        tokenizer.fit_on_texts(train_labels)
+
+        # Vectorize training and validation texts.
+        y_train = tokenizer.texts_to_sequences(train_labels)
+        y_val = tokenizer.texts_to_sequences(val_labels)
+
+        # Get max sequence length.
+        max_length = len(max(y_train, key=len))
+        if max_length > self.MAX_SEQUENCE_LENGTH:
+            max_length = self.MAX_SEQUENCE_LENGTH
+
+        # Fix sequence length to max value. Sequences shorter than the length are
+        # padded in the beginning and sequences longer are truncated
+        # at the beginning.
+        y_train = sequence.pad_sequences(y_train, maxlen=max_length)
+        y_val = sequence.pad_sequences(y_val, maxlen=max_length)
+
+        return y_train, y_val, tokenizer.word_index
+
+
+from treinamento import preprocessamento
+
+if __name__ == '__main__':
+
+    treina = TreinaModelo()
+    data = preprocessamento.dicionario_treinamento
+    data = treina._load_and_shuffle_data(data)
+
+    # Get the review phrase and sentiment values.
+    audios = list(data.keys())
+    labels = np.array(data.values())
+
+    treina._split_training_and_validation_sets(audios, labels)
+
+    treina.train_fine_tuned_sequence_model(data)

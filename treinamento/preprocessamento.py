@@ -31,6 +31,10 @@ https://speechpy.readthedocs.io/_/downloads/en/stable/pdf/
 https://librosa.org/doc/latest/feature.html
 https://librosa.org/doc/latest/generated/librosa.feature.melspectrogram.html
 https://stackoverflow.com/questions/60492462/mfcc-python-completely-different-result-from-librosa-vs-python-speech-features
+https://github.com/astorfi/speechpy/blob/master/speechpy/feature.py
+https://datascience.stackexchange.com/questions/27634/how-to-convert-a-mel-spectrogram-to-log-scaled-mel-spectrogram
+
+
 
 '''
 class TreinamentoCNN(object):
@@ -122,7 +126,19 @@ class TreinamentoCNN(object):
 
                                         This computes the scaling ``10 * log10(S / ref)`` in a numerically
                                         stable way.
-
+                                        
+                                        TECHNIQUES FOR FEATURE EXTRACTION IN SPEECH
+                                        RECOGNITION SYSTEM : A COMPARATIVE STUDY 
+                                        https://arxiv.org/pdf/1305.1145.pdf
+                                        
+                                        https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
+                                        https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
+                                        
+                                        Não estou usando DCT, mas log-energy 
+                                        https://en.wikipedia.org/wiki/Discrete_cosine_transform
+                                        
+                                        https://docs.python.org/2/tutorial/datastructures.html#dictionaries
+                                        https://developer.rhino3d.com/guides/rhinopython/primer-101/6-tuples-lists-dictionaries/
 
                     '''
 
@@ -163,9 +179,7 @@ class TreinamentoCNN(object):
         https://github.com/attardi/CNN_sentence/blob/master/process_data.py
         https://scikit-learn.org/stable/modules/multiclass.html
         https://medium.com/@maobedkova/acoustic-word-embeddings-fc3f1a8f0519
-
         https://medium.com/@oyewusiwuraola/yor%C3%B9b%C3%A1-word-vector-representation-with-fasttext-fe905bf558ea
-
         https://github.com/Niger-Volta-LTI
 
         https://www.youtube.com/channel/UCoEHw2cfZ0YJNQUKeWxLuWg
@@ -174,14 +188,59 @@ class TreinamentoCNN(object):
 
         # labels_encoded[0].vocabulary_   devolve o índice de cada palavra
         labels_encoded = self.vetorizador(dicionario_treinamento_raw.values())
-        print(labels_encoded[0].inverse_transform(labels_encoded[1]))
+        #print(labels_encoded[0].inverse_transform(labels_encoded[1]))
 
-        dicionario_labels_encoded = {key : label for label in labels_encoded for key, value in dicionario_treinamento_raw.items()}
+        '''
+        Testando voltar para a transcrição original após vetorização
+        Preciso garantir aqui que as transcrições vetorizadas combinem exatamente com os audios
 
-        return dicionario_labels_encoded
+        '''
+
+        #transcricao_convertida_teste = labels_encoded[0].inverse_transform(list(dicionario_labels_encoded.values())[0])
+        #print(transcricao_convertida_teste)
+
+        #return dicionario_labels_encoded
 
 
     def vetorizador(self, listaSentencas):
+
+        '''
+
+        https://www.oreilly.com/library/view/applied-text-analysis/9781491963036/ch04.html
+        https://developers.google.com/machine-learning/guides/text-classification/step-3?hl=pl
+
+
+        https://developers.google.com/machine-learning/guides/text-classification/step-4?hl=pl
+
+        DECISÕES:
+
+        1. Precisarei usar sequence models e word embedding
+        2. Usar um word embedding já treinado ou treinar com os dados que possuo ?
+        3. Usarei AWE (Acoustic Word Embedding) ou somente TWE (Textual Word Embedding) ?
+
+        LINKS ÚTEIS:
+        https://medium.com/@maobedkova/acoustic-word-embeddings-fc3f1a8f0519
+        https://medium.com/@oyewusiwuraola/yor%C3%B9b%C3%A1-word-vector-representation-with-fasttext-fe905bf558ea
+        https://github.com/Niger-Volta-LTI
+
+
+        https://fasttext.cc/docs/en/pretrained-vectors.html
+        P. Bojanowski*, E. Grave*, A. Joulin, T. Mikolov, Enriching Word Vectors with Subword Information
+
+        @article{bojanowski2017enriching,
+        title={Enriching Word Vectors with Subword Information},
+        author={Bojanowski, Piotr and Grave, Edouard and Joulin, Armand and Mikolov, Tomas},
+        journal={Transactions of the Association for Computational Linguistics},
+        volume={5},
+        year={2017},
+        issn={2307-387X},
+        pages={135--146}
+        }
+
+        wget https://dl.fbaipublicfiles.com/fasttext/vectors-wiki/wiki.yo.zip
+        Length: (2,1 GB)
+
+        '''
 
         vetorizador = CountVectorizer()
         vetorizador.fit(listaSentencas)
