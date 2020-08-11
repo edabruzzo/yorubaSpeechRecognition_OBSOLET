@@ -43,6 +43,8 @@ class PreProcessamento(object):
 
     def obterDicionarioTreinamento(self):
 
+        print('Iniciando montagem de dicionário com nomes dos arquivos de áudio e transcrições')
+
         caminho_arquivos_treinamento = '../../corpus'
         treinamento_dicionario = {}
 
@@ -84,36 +86,41 @@ class PreProcessamento(object):
         return treinamento_dicionario
 
 
-
     listaAudios_LogEnergy_Labels_Econded_Treinamento = []
 
     dicionario_treinamento_encoded = {}
 
-    def montarListaCaminhosArquivosAudio(self, nome_audio, label_encoded):
 
+    def montarListaCaminhosArquivosAudio(self, dicionario):
+
+        print('Iniciando montagem de dicionário com caminhos para arquivos de áudio')
         caminho_arquivos_treinamento = '../../corpus'
+        dicionario_treinamento_encoded = {}
 
-        for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
+        for key, value in dicionario.items():
+            for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
+                for arquivo in arquivos:
+                    if key +'.wav' in arquivo:
+                        caminho_audio = os.path.join(root, key + '.wav')
+                        dicionario_treinamento_encoded[caminho_audio] = value
 
-            for arquivo in arquivos:
-
-                if nome_audio +'.wav' in arquivo:
-                    caminho_audio = os.path.join(root, nome_audio + '.wav')
-                    self.dicionario_treinamento_encoded[caminho_audio] = label_encoded
-
-
-
+        return dicionario_treinamento_encoded
 
 
-    def carregarListaGlobalAudiosTreinamento(self, caminho_audio, label_encoded):
 
-        dimensao_maxima = 100
 
-        sinal_audio, sample_rate = librosa.load(caminho_audio, sr=16000)
 
-        espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
+    def carregarListaGlobalAudiosTreinamento(self, dicionario):
 
-        '''
+        print('Iniciando conversão dos audios em espectogramas e log_energy')
+        dimensao_maxima = 50
+
+        for key, value in dicionario.items():
+
+            sinal_audio, sample_rate = librosa.load(key, sr=16000)
+            espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
+
+            '''
                             https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
 
                             The experimental results in Section V show
@@ -154,34 +161,35 @@ class PreProcessamento(object):
                             https://docs.python.org/2/tutorial/datastructures.html#dictionaries
                             https://developer.rhino3d.com/guides/rhinopython/primer-101/6-tuples-lists-dictionaries/
 
-        '''
+            '''
 
-        log_energy_espectograma = librosa.power_to_db(espectograma)
+            log_energy_espectograma = librosa.power_to_db(espectograma)
 
-        '''
-        Garante que os vetores mfcc tenham o mesmo tamanho fixo através de um padding de 0 
-        em volta do vetor mfcc, caso ele tenha dimensão menor do que um valor máximo pré-fixado
+            '''
+            Garante que os vetores mfcc tenham o mesmo tamanho fixo através de um padding de 0 
+            em volta do vetor mfcc, caso ele tenha dimensão menor do que um valor máximo pré-fixado
+    
+            https://www.kaggle.com/ilyamich/mfcc-implementation-and-tutorial
+    
+            How to normalize MFCCs
+            https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
+    
+            '''
 
-        https://www.kaggle.com/ilyamich/mfcc-implementation-and-tutorial
+            if (dimensao_maxima > log_energy_espectograma.shape[1]):
 
-        How to normalize MFCCs
-        https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
-
-        '''
-
-        if (dimensao_maxima > log_energy_espectograma.shape[1]):
-
-            padding = dimensao_maxima - log_energy_espectograma.shape[1]
-            mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
+                padding = dimensao_maxima - log_energy_espectograma.shape[1]
+                mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
                                                          mode='constant')
 
-        # Else cutoff the remaining parts
-        else:
-            mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
+            # Else cutoff the remaining parts
+            else:
+                mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
 
-        audioObj = audio.Audio(log_energy_espectograma, label_encoded)
+            audioObj = audio.Audio(log_energy_espectograma, label_encoded)
 
         self.listaAudios_LogEnergy_Labels_Econded_Treinamento.append(audioObj)
+
 
 
     def converterTranscricaoCategoricalDecoder(self, dicionario_treinamento_raw):
@@ -282,12 +290,17 @@ class PreProcessamento(object):
 
         dicionario_treinamento_raw = treinamento.obterDicionarioTreinamento()
         dicionario_treinamento_encoded_nomes_caminho = treinamento.converterTranscricaoCategoricalDecoder(dicionario_treinamento_raw)
+        dicionario_treinamento_raw = None
+        dicionario_treinamento_encoded = treinamento.montarListaCaminhosArquivosAudio(dicionario_treinamento_encoded_nomes_caminho)
+        dicionario_treinamento_encoded_nomes_caminho = None
+        dicionario_final = treinamento.carregarListaGlobalAudiosTreinamento(dicionario_treinamento_encoded)
+        dicionario_treinamento_encoded = None
 
-        for key, value in dicionario_treinamento_encoded_nomes_caminho.items():
-            treinamento.montarListaCaminhosArquivosAudio(key, value)
-
+        '''
+        !!! StackOverflow !!!
         parallel = Parallel(backend="threading", verbose=1)
         parallel(delayed(treinamento.carregarListaGlobalAudiosTreinamento)(key, treinamento.dicionario_treinamento_encoded[key]) for key in treinamento.dicionario_treinamento_encoded)
+        '''
 
         tempo_processamento = time.clock() - inicio
 
@@ -295,7 +308,7 @@ class PreProcessamento(object):
 
         print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
 
-        return treinamento.listaAudios_LogEnergy_Labels_Econded_Treinamento
+        return dicionario_final
 
 
 
