@@ -8,6 +8,9 @@ import numpy as np
 #from keras.utils import np_utils
 from sklearn.feature_extraction.text import CountVectorizer
 from joblib import Parallel, delayed
+from treinamento import audio
+import time
+
 
 '''
 REFERÊNCIAS: 
@@ -41,12 +44,15 @@ https://datascience.stackexchange.com/questions/27634/how-to-convert-a-mel-spect
 class PreProcessamento(object):
 
 
-    def obterDicionarioTreinamento(self):
+    listaGlobalAudios = []
+    vocabulario = []
 
-        print('Iniciando montagem de dicionário com nomes dos arquivos de áudio e transcrições')
+
+    def carregarListaAudiosNomesArquivosTranscricoes(self):
+
+        print('Iniciando montagem da lista com nomes dos arquivos de áudio e transcrições')
 
         caminho_arquivos_treinamento = '../../corpus'
-        treinamento_dicionario = {}
 
         for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
             for arquivo in arquivos:
@@ -72,52 +78,43 @@ class PreProcessamento(object):
 
                        for linha in ref_arquivo:
 
-                            arquivo_audio = re.search(padrao_regex, linha).group()
+                            nome_arquivo_audio = re.search(padrao_regex, linha).group()
                             transcricao = re.search('".*"', linha).group().replace('"', '')
-                            treinamento_dicionario[arquivo_audio] = transcricao
-
-
+                            audioObj = audio.Audio(nome_arquivo_audio, None, transcricao, None, None)
+                            self.listaGlobalAudios.append(audioObj)
+                            self.vocabulario.append(transcricao)
 
                     except UnicodeError as e:
                         pass
 
                     ref_arquivo.close()
 
-        return treinamento_dicionario
 
 
-    listaAudios_LogEnergy_Labels_Econded_Treinamento = []
 
-    dicionario_treinamento_encoded = {}
+    def montarListaCaminhosArquivosAudio(self):
 
-
-    def montarListaCaminhosArquivosAudio(self, dicionario):
-
-        print('Iniciando montagem de dicionário com caminhos para arquivos de áudio')
+        print('Iniciando atualização de caminhos para arquivos de áudio')
         caminho_arquivos_treinamento = '../../corpus'
-        dicionario_treinamento_encoded = {}
 
-        for key, value in dicionario.items():
+
+        for audio in self.listaGlobalAudios:
             for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
                 for arquivo in arquivos:
-                    if key +'.wav' in arquivo:
-                        caminho_audio = os.path.join(root, key + '.wav')
-                        dicionario_treinamento_encoded[caminho_audio] = value
-
-        return dicionario_treinamento_encoded
+                    if audio.nome_arquivo + '.wav' in arquivo:
+                        caminho_audio = os.path.join(root, audio.nome_arquivo + '.wav')
+                        audio.caminho_arquivo = caminho_audio
 
 
 
-
-
-    def carregarListaGlobalAudiosTreinamento(self, dicionario):
+    def carregarListaGlobalAudiosTreinamento(self):
 
         print('Iniciando conversão dos audios em espectogramas e log_energy')
         dimensao_maxima = 50
 
-        for key, value in dicionario.items():
+        for audio in self.listaGlobalAudios:
 
-            sinal_audio, sample_rate = librosa.load(key, sr=16000)
+            sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
             espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
 
             '''
@@ -186,13 +183,11 @@ class PreProcessamento(object):
             else:
                 mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
 
-            audioObj = audio.Audio(log_energy_espectograma, label_encoded)
-
-        self.listaAudios_LogEnergy_Labels_Econded_Treinamento.append(audioObj)
+            audio.log_energy = log_energy_espectograma
 
 
 
-    def converterTranscricaoCategoricalDecoder(self, dicionario_treinamento_raw):
+    def converterTranscricaoCategoricalDecoder(self):
         '''
 
         from keras.utils import to_categorical
@@ -215,13 +210,13 @@ class PreProcessamento(object):
         #print(labels_encoded[0].inverse_transform(labels_encoded[1]))
 
         vetorizador = CountVectorizer()
-        vetorizador.fit(dicionario_treinamento_raw.values())
-
+        vetorizador.fit(self.vocabulario)
         inicio_vetorizacao = time.clock()
 
-        for key, value in dicionario_treinamento_raw.items():
-            vetor_encoded = vetorizador.transform([value])
-            dicionario_treinamento_raw[key] = vetor_encoded
+        for audio in self.listaGlobalAudios:
+
+            vetor_encoded = vetorizador.transform([audio.transcricao])
+            audio.label_encoded = vetor_encoded
 
         processamento_vetorizacao = time.clock() - inicio_vetorizacao
         print('Tempo de processamento da vetorizacao {}'.format(processamento_vetorizacao))
@@ -230,12 +225,10 @@ class PreProcessamento(object):
         Testando voltar para a transcrição original após vetorização
         Preciso garantir aqui que as transcrições vetorizadas combinem exatamente com os audios
         '''
-        for key, value in dicionario_treinamento_raw.items():
-            transcricao_convertida_teste = vetorizador.inverse_transform(value)
+        for audio in self.listaGlobalAudios:
+            transcricao_convertida_teste = vetorizador.inverse_transform(audio.label_encoded)
             print(transcricao_convertida_teste)
             break
-
-        return dicionario_treinamento_raw
 
 
     def vetorizador_sequence(self, vetorizador, listaSentencas):
@@ -285,16 +278,11 @@ class PreProcessamento(object):
 
         inicio = time.clock()
 
-        treinamento = self
-        dicionario_treinamento_encoded = {}
-
-        dicionario_treinamento_raw = treinamento.obterDicionarioTreinamento()
-        dicionario_treinamento_encoded_nomes_caminho = treinamento.converterTranscricaoCategoricalDecoder(dicionario_treinamento_raw)
-        dicionario_treinamento_raw = None
-        dicionario_treinamento_encoded = treinamento.montarListaCaminhosArquivosAudio(dicionario_treinamento_encoded_nomes_caminho)
-        dicionario_treinamento_encoded_nomes_caminho = None
-        dicionario_final = treinamento.carregarListaGlobalAudiosTreinamento(dicionario_treinamento_encoded)
-        dicionario_treinamento_encoded = None
+        self.carregarListaAudiosNomesArquivosTranscricoes()
+        self.converterTranscricaoCategoricalDecoder()
+        self.vocabulario = [] # Neste ponto não preciso mais da lista de vocabulários
+        self.montarListaCaminhosArquivosAudio()
+        self.carregarListaGlobalAudiosTreinamento()
 
         '''
         !!! StackOverflow !!!
@@ -304,18 +292,46 @@ class PreProcessamento(object):
 
         tempo_processamento = time.clock() - inicio
 
-        print(treinamento.listaAudios_LogEnergy_Labels_Econded_Treinamento[0])
+        print(self.listaGlobalAudios[0])
 
         print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
 
-        return dicionario_final
+        return self.listaGlobalAudios
 
-
-
-
-import time
 
 if __name__ == '__main__':
 
-    listaTreinamento = PreProcessamento().obterDados()
-    print(listaTreinamento)
+    '''
+    Importei o arquivo para monitoramento de memória do sequinte projeto: 
+    https://github.com/astrofrog/psrecord/blob/master/psrecord/main.py
+    
+    Arquivo importado no diretório: /usr/lib/python3.6/
+    Nome: monitoramento_memoria.py 
+    
+    '''
+    from monitoramento import monitoramento_PROPRIETARY as monitoramento_memoria
+    #from monitoramento import monitoramento_memoria
+
+    import datetime
+
+    pid_python = os.getpid()
+
+    path = '/home/usuario/mestrado/yorubaSpeechRecognition/monitoramento'
+    arquivoLog = os.path.join(path, f'yorubaSpeechRecognition__'
+                                    f'{str(datetime.date.today().strftime("%d-%m-%Y %H:%M:%S"))}__')
+
+    from multiprocessing import Process
+    '''
+    https://stackabuse.com/parallel-processing-in-python/
+    https://www.machinelearningplus.com/python/parallel-processing-python/#:~:text=In%20python%2C%20the%20multiprocessing%20module,in%20completely%20separate%20memory%20locations.
+    
+    
+    https://psutil.readthedocs.io/en/release-2.2.1/
+    '''
+    p1 = Process(target=PreProcessamento().obterDados)
+    p1.start()
+
+    p2 = Process(target=monitoramento_memoria.monitor, args=(p1.pid, arquivoLog + '.txt', arquivoLog + '.png'))
+    p2.start()
+
+
