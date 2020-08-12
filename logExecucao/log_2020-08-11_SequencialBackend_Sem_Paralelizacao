@@ -1,0 +1,22 @@
+Iniciando montagem da lista com nomes dos arquivos de áudio e transcrições
+Efetuando o monitoramento do processo PID 9680
+Status atual do processo de PID 9680: running
+[Parallel(n_jobs=1)]: Using backend SequentialBackend with 1 concurrent workers.
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   2 out of   2 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   4 out of   4 | elapsed:    0.0s remaining:    0.0s
+Tempo de processamento da vetorizacao 1.450292
+[Parallel(n_jobs=1)]: Done 4316 out of 4316 | elapsed:    4.1s finished
+[array(['inu', 'pelu', 'tuntun', 'wo', 'ọdun'], dtype='<U16')]
+Iniciando atualização de caminhos para arquivos de áudio
+Iniciando conversão dos audios em espectogramas e log_energy
+[Parallel(n_jobs=1)]: Using backend SequentialBackend with 1 concurrent workers.
+[Parallel(n_jobs=1)]: Done   1 out of   1 | elapsed:    0.0s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   2 out of   2 | elapsed:    0.1s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   3 out of   3 | elapsed:    0.1s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done   4 out of   4 | elapsed:    0.1s remaining:    0.0s
+[Parallel(n_jobs=1)]: Done 4316 out of 4316 | elapsed:  2.4min finished
+<treinamento.audio.Audio object at 0x7f83ef112710>
+Tempo total de pré-processamento dos dados:  103.376172 segundos
+Process finished (270.75 seconds)

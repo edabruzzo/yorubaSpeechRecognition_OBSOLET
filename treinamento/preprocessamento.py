@@ -50,7 +50,10 @@ class PreProcessamento(object):
 
 
     def __init__(self, configuracao):
+
         # https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
+        if configuracao_paralelizacao['n_jobs'] == 1:
+            configuracao_paralelizacao['backend'] = None
         self.configuracao = configuracao
 
 
@@ -374,18 +377,24 @@ if __name__ == '__main__':
 “threading” is a very low-overhead backend but it suffers from the Python Global Interpreter Lock if the called function relies a lot on Python objects. “threading” is mostly useful when the execution bottleneck is a compiled extension that explicitly releases the GIL (for instance a Cython loop wrapped in a “with nogil” block or an expensive call to a library such as NumPy).
 finally, you can register backends by calling register_parallel_backend. This will allow you to implement a backend of your liking.
 
-    
-    
+    https://scikit-learn.org/stable/modules/generated/sklearn.utils.parallel_backend.html
+    https://stackoverflow.com/questions/59136430/how-does-scikit-learn-handle-multiple-n-jobs-arguments
     
     TESTAR DIFERENTES PARÂMETROS DE PARALELIZAÇÃO E VER O EFEITO EM TEMPO E MEMÓRIA
     '''
 
 
     configuracao_paralelizacao = {}
+    #using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
     configuracao_paralelizacao['n_jobs'] = 4
     configuracao_paralelizacao['verbose'] = 5
     backend = ["loky", "multiprocessing", "threading"]
+
+    if configuracao_paralelizacao['n_jobs'] == 1:
+        configuracao_paralelizacao['backend'] = 'SequentialBackend'
+
     configuracao_paralelizacao['backend'] = backend[1]
+
 
     preProcessamento = PreProcessamento(configuracao_paralelizacao)
 

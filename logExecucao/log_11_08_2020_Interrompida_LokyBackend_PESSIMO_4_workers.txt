@@ -1,0 +1,35 @@
+Iniciando montagem da lista com nomes dos arquivos de áudio e transcrições
+Efetuando o monitoramento do processo PID 10260
+Status atual do processo de PID 10260: running
+[Parallel(n_jobs=4)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  10 tasks      | elapsed:   17.7s
+[Parallel(n_jobs=4)]: Done  64 tasks      | elapsed:  1.1min
+[Parallel(n_jobs=4)]: Done 154 tasks      | elapsed:  2.2min
+[Parallel(n_jobs=4)]: Done 280 tasks      | elapsed:  3.9min
+[Parallel(n_jobs=4)]: Done 442 tasks      | elapsed:  6.3min
+Error in atexit._run_exitfuncs:
+Traceback (most recent call last):
+  File "/usr/lib/python3.6/multiprocessing/popen_fork.py", line 28, in poll
+    pid, sts = os.waitpid(self.pid, flag)
+KeyboardInterrupt
+Process Process-1:
+Traceback (most recent call last):
+  File "/usr/lib/python3.6/multiprocessing/process.py", line 258, in _bootstrap
+    self.run()
+  File "/usr/lib/python3.6/multiprocessing/process.py", line 93, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/preprocessamento.py", line 308, in obterDados
+    self.converterTranscricaoCategoricalDecoder()
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/preprocessamento.py", line 239, in converterTranscricaoCategoricalDecoder
+    parallel(delayed(self.vetorizar_transcricao)(audio) for audio in self.listaGlobalAudios)
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/joblib/parallel.py", line 1042, in __call__
+    self.retrieve()
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/joblib/parallel.py", line 921, in retrieve
+    self._output.extend(job.get(timeout=self.timeout))
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/joblib/_parallel_backends.py", line 542, in wrap_future_result
+    return future.result(timeout=timeout)
+  File "/usr/lib/python3.6/concurrent/futures/_base.py", line 427, in result
+    self._condition.wait(timeout)
+  File "/usr/lib/python3.6/threading.py", line 295, in wait
+    waiter.acquire()
+KeyboardInterrupt
