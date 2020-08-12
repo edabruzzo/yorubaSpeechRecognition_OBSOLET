@@ -10,6 +10,7 @@ from sklearn.feature_extraction.text import CountVectorizer
 from joblib import Parallel, delayed
 from treinamento import audio
 import time
+import psutil
 
 
 '''
@@ -46,6 +47,12 @@ class PreProcessamento(object):
 
     listaGlobalAudios = []
     vocabulario = []
+
+
+    def __init__(self, configuracao):
+        # https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
+        self.configuracao = configuracao
+
 
 
     def carregarListaAudiosNomesArquivosTranscricoes(self):
@@ -110,81 +117,90 @@ class PreProcessamento(object):
     def carregarListaGlobalAudiosTreinamento(self):
 
         print('Iniciando conversão dos audios em espectogramas e log_energy')
+
+        parallel = Parallel(n_jobs=self.configuracao['n_jobs'],
+                            backend=self.configuracao['backend'],
+                            verbose=self.configuracao['verbose'])
+
+        parallel(delayed(self.extrairLogEnergyMelSpectogram_Paralelizado)(audio) for audio in self.listaGlobalAudios)
+
+
+    def extrairLogEnergyMelSpectogram_Paralelizado(self, audio):
+
         dimensao_maxima = 50
+        sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
+        espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
 
-        for audio in self.listaGlobalAudios:
+        '''
+                        https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
 
-            sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
-            espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
+                        The experimental results in Section V show
+                        a consistent improvement in overall system performance by
+                        using the log-energy feature. There has been some question
+                        as to whether this improvement holds in larger-scale ASR
+                        tasks [40]. Nevertheless, these experiments at least show that
+                        nothing in principle prevents frequency-independent features
+                        such as log-energy from being accommodated within a CNN
+                        architecture when they stand to improve performance. (p.1539)   
+                        https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/CNN_ASLPTrans2-14.pdf?irgwc=1&OCID=AID2000142_aff_7806_1246483&tduid=%28ir__3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00%29%287806%29%281246483%29%28%283283fab34b8e9cb7166fb504c2f02716%29%2881561%29%28686431%29%28at106140_a107739_m12_p12460_cBR%29%28%29%29%283283fab34b8e9cb7166fb504c2f02716%29&irclickid=_3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00 
 
-            '''
-                            https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
+                        https://stackoverflow.com/questions/60492462/mfcc-python-completely-different-result-from-librosa-vs-python-speech-features                    
 
-                            The experimental results in Section V show
-                            a consistent improvement in overall system performance by
-                            using the log-energy feature. There has been some question
-                            as to whether this improvement holds in larger-scale ASR
-                            tasks [40]. Nevertheless, these experiments at least show that
-                            nothing in principle prevents frequency-independent features
-                            such as log-energy from being accommodated within a CNN
-                            architecture when they stand to improve performance. (p.1539)   
-                            https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/CNN_ASLPTrans2-14.pdf?irgwc=1&OCID=AID2000142_aff_7806_1246483&tduid=%28ir__3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00%29%287806%29%281246483%29%28%283283fab34b8e9cb7166fb504c2f02716%29%2881561%29%28686431%29%28at106140_a107739_m12_p12460_cBR%29%28%29%29%283283fab34b8e9cb7166fb504c2f02716%29&irclickid=_3n1mp6niookftmjtkk0sohzjxm2xilegkfdgcd0u00 
+                        https://pytorch.org/audio/transforms.html#spectrogram
 
-                            https://stackoverflow.com/questions/60492462/mfcc-python-completely-different-result-from-librosa-vs-python-speech-features                    
+                        https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
 
-                            https://pytorch.org/audio/transforms.html#spectrogram
-
-                            https://pytorch.org/tutorials/beginner/audio_preprocessing_tutorial.html
-
-                            http://man.hubwiz.com/docset/LibROSA.docset/Contents/Resources/Documents/_modules/librosa/core/spectrum.html#power_to_db
+                        http://man.hubwiz.com/docset/LibROSA.docset/Contents/Resources/Documents/_modules/librosa/core/spectrum.html#power_to_db
 
 
-                            def power_to_db(S, ref=1.0, amin=1e-10, top_db=80.0):
-                            Convert a power spectrogram (amplitude squared) to decibel (dB) units
+                        def power_to_db(S, ref=1.0, amin=1e-10, top_db=80.0):
+                        Convert a power spectrogram (amplitude squared) to decibel (dB) units
 
-                            This computes the scaling ``10 * log10(S / ref)`` in a numerically
-                            stable way.
+                        This computes the scaling ``10 * log10(S / ref)`` in a numerically
+                        stable way.
 
-                            TECHNIQUES FOR FEATURE EXTRACTION IN SPEECH
-                            RECOGNITION SYSTEM : A COMPARATIVE STUDY 
-                            https://arxiv.org/pdf/1305.1145.pdf
+                        TECHNIQUES FOR FEATURE EXTRACTION IN SPEECH
+                        RECOGNITION SYSTEM : A COMPARATIVE STUDY 
+                        https://arxiv.org/pdf/1305.1145.pdf
 
-                            https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
-                            https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
+                        https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
+                        https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
 
-                            Não estou usando DCT, mas log-energy 
-                            https://en.wikipedia.org/wiki/Discrete_cosine_transform
+                        Não estou usando DCT, mas log-energy 
+                        https://en.wikipedia.org/wiki/Discrete_cosine_transform
 
-                            https://docs.python.org/2/tutorial/datastructures.html#dictionaries
-                            https://developer.rhino3d.com/guides/rhinopython/primer-101/6-tuples-lists-dictionaries/
+                        https://docs.python.org/2/tutorial/datastructures.html#dictionaries
+                        https://developer.rhino3d.com/guides/rhinopython/primer-101/6-tuples-lists-dictionaries/
 
-            '''
+        '''
 
-            log_energy_espectograma = librosa.power_to_db(espectograma)
+        log_energy_espectograma = librosa.power_to_db(espectograma)
 
-            '''
-            Garante que os vetores mfcc tenham o mesmo tamanho fixo através de um padding de 0 
-            em volta do vetor mfcc, caso ele tenha dimensão menor do que um valor máximo pré-fixado
-    
-            https://www.kaggle.com/ilyamich/mfcc-implementation-and-tutorial
-    
-            How to normalize MFCCs
-            https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
-    
-            '''
+        '''
+        Garante que os vetores mfcc tenham o mesmo tamanho fixo através de um padding de 0 
+        em volta do vetor mfcc, caso ele tenha dimensão menor do que um valor máximo pré-fixado
 
-            if (dimensao_maxima > log_energy_espectograma.shape[1]):
+        https://www.kaggle.com/ilyamich/mfcc-implementation-and-tutorial
 
-                padding = dimensao_maxima - log_energy_espectograma.shape[1]
-                mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
+        How to normalize MFCCs
+        https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
+
+        '''
+
+        if (dimensao_maxima > log_energy_espectograma.shape[1]):
+
+            padding = dimensao_maxima - log_energy_espectograma.shape[1]
+            mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
                                                          mode='constant')
 
-            # Else cutoff the remaining parts
-            else:
-                mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
+        # Else cutoff the remaining parts
+        else:
+            mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
 
-            audio.log_energy = log_energy_espectograma
+        audio.log_energy = log_energy_espectograma
 
+
+    vetorizador = CountVectorizer()
 
 
     def converterTranscricaoCategoricalDecoder(self):
@@ -209,14 +225,16 @@ class PreProcessamento(object):
         #labels_encoded = self.vetorizador(dicionario_treinamento_raw.values())
         #print(labels_encoded[0].inverse_transform(labels_encoded[1]))
 
-        vetorizador = CountVectorizer()
-        vetorizador.fit(self.vocabulario)
         inicio_vetorizacao = time.clock()
 
-        for audio in self.listaGlobalAudios:
+        self.vetorizador.fit(self.vocabulario)
 
-            vetor_encoded = vetorizador.transform([audio.transcricao])
-            audio.label_encoded = vetor_encoded
+        parallel = Parallel(n_jobs=self.configuracao['n_jobs'],
+                            backend=self.configuracao['backend'],
+                            verbose=self.configuracao['verbose'])
+
+        parallel(delayed(self.vetorizar_transcricao)(audio) for audio in self.listaGlobalAudios)
+
 
         processamento_vetorizacao = time.clock() - inicio_vetorizacao
         print('Tempo de processamento da vetorizacao {}'.format(processamento_vetorizacao))
@@ -226,9 +244,14 @@ class PreProcessamento(object):
         Preciso garantir aqui que as transcrições vetorizadas combinem exatamente com os audios
         '''
         for audio in self.listaGlobalAudios:
-            transcricao_convertida_teste = vetorizador.inverse_transform(audio.label_encoded)
+            transcricao_convertida_teste = self.vetorizador.inverse_transform(audio.label_encoded)
             print(transcricao_convertida_teste)
             break
+
+
+    def vetorizar_transcricao(self, audio):
+        vetor_encoded = self.vetorizador.transform([audio.transcricao])
+        audio.label_encoded = vetor_encoded
 
 
     def vetorizador_sequence(self, vetorizador, listaSentencas):
@@ -299,6 +322,11 @@ class PreProcessamento(object):
         return self.listaGlobalAudios
 
 
+
+
+
+
+
 if __name__ == '__main__':
 
     '''
@@ -318,7 +346,8 @@ if __name__ == '__main__':
 
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/monitoramento'
     arquivoLog = os.path.join(path, f'yorubaSpeechRecognition__'
-                                    f'{str(datetime.date.today().strftime("%d-%m-%Y %H:%M:%S"))}__')
+                                    f'{str(datetime.datetime.today())}__'
+                                    f'{str(datetime.time())}__')
 
     from multiprocessing import Process
     '''
@@ -328,10 +357,47 @@ if __name__ == '__main__':
     
     https://psutil.readthedocs.io/en/release-2.2.1/
     '''
-    p1 = Process(target=PreProcessamento().obterDados)
+
+    '''
+    PARÂMETROS DE PARALELIZAÇÃO
+    https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
+    
+    n_jobs = 4   # máximo número de cpus = psutil.cpu_count() 
+    
+    using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
+
+    backend = "multiprocessing"    
+    backend = "threading"
+    
+    “loky” used by default, can induce some communication and memory overhead when exchanging input and output data with the worker Python processes.
+“multiprocessing” previous process-based backend based on multiprocessing.Pool. Less robust than loky.
+“threading” is a very low-overhead backend but it suffers from the Python Global Interpreter Lock if the called function relies a lot on Python objects. “threading” is mostly useful when the execution bottleneck is a compiled extension that explicitly releases the GIL (for instance a Cython loop wrapped in a “with nogil” block or an expensive call to a library such as NumPy).
+finally, you can register backends by calling register_parallel_backend. This will allow you to implement a backend of your liking.
+
+    
+    
+    
+    TESTAR DIFERENTES PARÂMETROS DE PARALELIZAÇÃO E VER O EFEITO EM TEMPO E MEMÓRIA
+    '''
+
+
+    configuracao_paralelizacao = {}
+    configuracao_paralelizacao['n_jobs'] = 4
+    configuracao_paralelizacao['verbose'] = 5
+    backend = ["loky", "multiprocessing", "threading"]
+    configuracao_paralelizacao['backend'] = backend[1]
+
+    preProcessamento = PreProcessamento(configuracao_paralelizacao)
+
+    '''
+    PRÉ-PROCESSAMENTO
+    '''
+    p1 = Process(target=preProcessamento.obterDados)
     p1.start()
 
-    p2 = Process(target=monitoramento_memoria.monitor, args=(p1.pid, arquivoLog + '.txt', arquivoLog + '.png'))
+
+    '''
+    Processo rodando em paralelo para monitora uso de memória, CPU, tempo decorrido no pré-processamento    
+    '''
+    p2 = Process(target=monitoramento_memoria.monitor, args=(configuracao_paralelizacao, p1.pid, arquivoLog + '.txt', arquivoLog + '.png'))
     p2.start()
-
-
