@@ -271,6 +271,7 @@ class TreinaModelo(object):
 from treinamento import preprocessamento
 from util.paralelizacao import Paralelizacao
 from util.sequencial import Sequencial
+from util.monitoramento_memoria import Monitoramento
 
 if __name__ == '__main__':
 
@@ -305,7 +306,8 @@ if __name__ == '__main__':
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
     '''
 
-    preprocessamento.PreProcessamento(executarEmParalelo=False).obterDados()
+    processa = preprocessamento.PreProcessamento(executarEmParalelo=False)
+    Monitoramento().monitorar_memoria(processa.obterDados, configuracao_paralelizacao=processa.configuracao_paralelismo)
     listaTreinamento = preprocessamento.PreProcessamento().listaGlobalAudios
 
     #Paralelizacao().executarMetodoParalelo(TreinaModelo().extrairDados(), listaTreinamento)

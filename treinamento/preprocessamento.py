@@ -81,6 +81,9 @@ class PreProcessamento(object):
 
         TESTAR DIFERENTES PARÂMETROS DE PARALELIZAÇÃO E VER O EFEITO EM TEMPO E MEMÓRIA
         '''
+        if executarEmParalelo == False:
+            numJobs=1
+            backend='SequencialBackend'
 
         configuracao_paralelizacao = {}
         # using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
@@ -350,72 +353,6 @@ class PreProcessamento(object):
         print(self.listaGlobalAudios[0])
 
         return self.listaGlobalAudios
-
-
-
-    def carregarListaGlobalAudiosTreinamento_(self, paralelo=True, monitorarExecucao=True):
-
-        inicio = time.clock()
-        '''
-                            Importei o arquivo para monitoramento de memória do sequinte projeto:
-                            https://github.com/astrofrog/psrecord/blob/master/psrecord/main.py
-
-                            Arquivo importado no diretório: /usr/lib/python3.6/
-                            Nome: monitoramento_memoria.py
-
-        '''
-        from monitoramento import monitoramento_PROPRIETARY as monitoramento_memoria
-        # from monitoramento import monitoramento_memoria
-
-        import datetime
-
-        pid = os.getpid()
-
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition/monitoramento'
-        arquivoLog = os.path.join(path, f'yorubaSpeechRecognition__'
-                                            f'{str(datetime.datetime.today())}__'
-                                            f'{str(datetime.time())}__')
-
-        from multiprocessing import Process
-
-        configuracao_paralelizacao = self.configuracao_paralelismo
-
-        # https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
-        if self.configuracao_paralelismo['n_jobs'] == 1:
-            # Apenas para efito de log
-            configuracao_paralelizacao['backend'] = 'SequentialBackend'
-
-
-        if paralelo:
-            '''
-            PRÉ-PROCESSAMENTO
-            '''
-            p1 = Process(target=self.obterDados)
-            p1.start()
-            pid_subProcess = p1.pid
-            if pid_subProcess is not None:
-                pid = pid_subProcess
-
-        if monitorarExecucao:
-            '''
-             Processo rodando em paralelo para monitora uso de memória, CPU, tempo decorrido no pré-processamento    
-            '''
-            p2 = Process(target=monitoramento_memoria.monitor,
-                         args=(configuracao_paralelizacao,
-                               pid,
-                               arquivoLog + '.txt',
-                               arquivoLog + '.png'))
-            p2.start()
-
-
-        if not paralelo:
-
-            self.configuracao_paralelismo['n_jobs'] = 1
-            self.obterDados()
-
-
-        tempo_processamento = time.clock() - inicio
-        print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
 
 
 

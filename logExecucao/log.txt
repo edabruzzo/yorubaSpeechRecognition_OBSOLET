@@ -1,5 +1,3 @@
-pydev debugger: process 17202 is connecting
-
 /home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:493: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
   _np_qint8 = np.dtype([("qint8", np.int8, 1)])
 /home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:494: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
@@ -13,6 +11,18 @@ pydev debugger: process 17202 is connecting
 /home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:502: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
   np_resource = np.dtype([("resource", np.ubyte, 1)])
 Iniciando montagem da lista com nomes dos arquivos de áudio e transcrições
-Tempo de processamento da vetorizacao 2.3533740000000005
+Traceback (most recent call last):
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/treinaModelo.py", line 320, in <module>
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(X, y)
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/treinaModelo.py", line 230, in obter_conjuntos_treinamento_validacao
+    shuffle=True)
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/sklearn/model_selection/_split.py", line 2131, in train_test_split
+    default_test_size=0.25)
+  File "/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/sklearn/model_selection/_split.py", line 1814, in _validate_shuffle_split
+    train_size)
+ValueError: With n_samples=0, test_size=0.2 and train_size=None, the resulting train set will be empty. Adjust any of the aforementioned parameters.
+Efetuando o monitoramento do processo PID 17938
+Status atual do processo de PID 17938: running
+Tempo de processamento da vetorizacao 0.8857729999999999
 [array(['inu', 'pelu', 'tuntun', 'wo', 'ọdun'], dtype='<U16')]
 Iniciando atualização de caminhos para arquivos de áudio
