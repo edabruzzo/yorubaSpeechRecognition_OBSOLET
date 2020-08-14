@@ -11,7 +11,7 @@ from tensorflow.python.keras.preprocessing import sequence
 from tensorflow.python.keras.preprocessing import text
 
 from sklearn.model_selection import train_test_split
-from joblib import Parallel, delayed
+
 
 
 
@@ -225,8 +225,9 @@ class TreinaModelo(object):
         X_train, X_test, y_train, y_test = train_test_split(np.array(audios),
                                                     np.array(labels),
                                                     stratify=labels,
-                                                    test_size=self.validation_split,
-                                                    random_state=777, shuffle=True)
+                                                    test_size=0.2,
+                                                    random_state=777,
+                                                    shuffle=True)
 
 
         return ((X_train, y_train), (X_test, y_test))
@@ -261,15 +262,14 @@ class TreinaModelo(object):
     listaAudiosVetorizados = []
     listaLabelsVetorizados = []
 
-    def carregarDadosArquivos(self, path_audio_vetorizado):
-
-        audio_vetorizado = np.load(path_audio_vetorizado)
-        self.listaAudiosVetorizados.append(conteudo[0])
-        self.listaLabelsVetorizados.append(conteudo[1])
+    def extrairDados(self, audio):
+        self.listaAudiosVetorizados.append(audio.log_energy)
+        self.listaLabelsVetorizados.append(audio.label_encoded)
 
 
 
 from treinamento import preprocessamento
+from util import paralelizacao
 
 if __name__ == '__main__':
 
@@ -299,13 +299,18 @@ if __name__ == '__main__':
     
     '''
 
+    '''
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados/'
-
-    parallel = Parallel(n_jobs=4, backend='multiprocessing', verbose=5)
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
-    parallel(delayed(TreinaModelo().carregarDadosArquivos)(os.path.join(path, arquivo_audio)) for arquivo_audio in os.listdir(path))
+    '''
 
-    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(TreinaModelo().listaAudiosVetorizados, TreinaModelo().listaLabelsVetorizados)
+    preprocessamento.PreProcessamento().obterDados()
+    listaTreinamento = preprocessamento.PreProcessamento().listaGlobalAudios
+    paralelizacao.Paralelizacao().executarMetodoParalelo(TreinaModelo().extrairDados, listaTreinamento)
+    X = TreinaModelo().listaAudiosVetorizados
+    y = TreinaModelo().listaLabelsVetorizados
+
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(X, y)
 
     print(X_train.shape)
     print(y_train.shape)

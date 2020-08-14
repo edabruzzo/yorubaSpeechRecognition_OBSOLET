@@ -7,11 +7,10 @@ from treinamento import audio
 import numpy as np
 #from keras.utils import np_utils
 from sklearn.feature_extraction.text import CountVectorizer
-from joblib import Parallel, delayed
 from treinamento import audio
 import time
 import psutil
-
+from util.paralelizacao import Paralelizacao
 
 '''
 REFERÊNCIAS: 
@@ -153,14 +152,11 @@ class PreProcessamento(object):
 
         print('Iniciando conversão dos audios em espectogramas e log_energy')
 
-        parallel = Parallel(n_jobs=self.configuracao_paralelismo['n_jobs'],
-                            backend=self.configuracao_paralelismo['backend'],
-                            verbose=self.configuracao_paralelismo['verbose'])
-
-        parallel(delayed(self.extrairLogEnergyMelSpectogram_Paralelizado)(audio) for audio in self.listaGlobalAudios)
+        Paralelizacao().executarMetodoParalelo(self.extrairLogEnergyMelSpectogram,
+                                               self.listaGlobalAudios)
 
 
-    def extrairLogEnergyMelSpectogram_Paralelizado(self, audio):
+    def extrairLogEnergyMelSpectogram(self, audio):
 
         dimensao_maxima = 50
         sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
@@ -264,11 +260,7 @@ class PreProcessamento(object):
 
         self.vetorizador.fit(self.vocabulario)
 
-        parallel = Parallel(n_jobs=self.configuracao_paralelismo['n_jobs'],
-                            backend=self.configuracao_paralelismo['backend'],
-                            verbose=self.configuracao_paralelismo['verbose'])
-
-        parallel(delayed(self.vetorizar_transcricao)(audio) for audio in self.listaGlobalAudios)
+        Paralelizacao().executarMetodoParalelo(self.vetorizar_transcricao, self.listaGlobalAudios)
 
 
         processamento_vetorizacao = time.clock() - inicio_vetorizacao
@@ -425,13 +417,13 @@ class PreProcessamento(object):
         path_audios = 'audios_vetorizados'
         path_labels = 'audios_labels'
 
-        file_audio = os.path.join(path + path_audios, f'''__{audio.transcricao}__.npy''')
-        file_label = os.path.join(path + path_labels, f'''__{audio.transcricao}__.npy''')
+        file_audio = os.path.join(path + path_audios, f'__{audio.transcricao}__.npy')
+        file_label = os.path.join(path + path_labels, f'__{audio.transcricao}__.npy')
 
-        with open(file_audio) as f:
+        with open(file_audio, 'w') as f:
             f.write(str(audio.log_energy))
 
-        with open(file_label) as f:
+        with open(file_label, 'w') as f:
             f.write(str(audio.label_encoded))
 
 
@@ -442,5 +434,3 @@ if __name__ == '__main__':
     #PreProcessamento().carregarListaGlobalAudiosTreinamento_(paralelo=False, monitorarExecucao=False)
 
     PreProcessamento().obterDados()
-    parallel = Parallel(n_jobs=4, backend='multiprocessing', verbose=5)
-    parallel(delayed(PreProcessamento().gravarDados)(audio) for audio in PreProcessamento().listaGlobalAudios)
