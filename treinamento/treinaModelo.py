@@ -11,7 +11,7 @@ from tensorflow.python.keras.preprocessing import sequence
 from tensorflow.python.keras.preprocessing import text
 
 from sklearn.model_selection import train_test_split
-
+from joblib import Parallel, delayed
 
 
 
@@ -219,18 +219,7 @@ class TreinaModelo(object):
         model.save('tweet_weather_sepcnn_fine_tuned_model.h5')
         return history['val_acc'][-1], history['val_loss'][-1]
 
-    def _load_and_shuffle_data(self, data, seed=123):
-
-        """
-
-        """
-        np.random.seed(seed)
-
-        return data.reindex(np.random.permutation(data.index))
-
-
-    def _split_training_and_validation_sets(self, audios, labels):
-
+    def obter_conjuntos_treinamento_validacao(self, audios, labels):
 
         # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
         X_train, X_test, y_train, y_test = train_test_split(np.array(audios),
@@ -238,6 +227,7 @@ class TreinaModelo(object):
                                                     stratify=labels,
                                                     test_size=self.validation_split,
                                                     random_state=777, shuffle=True)
+
 
         return ((X_train, y_train), (X_test, y_test))
 
@@ -268,8 +258,18 @@ class TreinaModelo(object):
         return y_train, y_val, tokenizer.word_index
 
 
-from treinamento import preprocessamento
+    listaAudiosVetorizados = []
+    listaLabelsVetorizados = []
 
+    def carregarDadosArquivos(self, path_audio_vetorizado):
+
+        audio_vetorizado = np.load(path_audio_vetorizado)
+        self.listaAudiosVetorizados.append(conteudo[0])
+        self.listaLabelsVetorizados.append(conteudo[1])
+
+
+
+from treinamento import preprocessamento
 
 if __name__ == '__main__':
 
@@ -289,22 +289,26 @@ if __name__ == '__main__':
     preprocessamento.PreProcessamento(numJobs=4, backend=backend[1], verbose=5)\
                     .carregarListaGlobalAudiosTreinamento_(paralelo=False, monitorarExecucao=False)
     
-    '''
-
+    
     #Configuração padrão: n_jobs=4, backend=multiprocessing, verbose=5, paralelo=True, monitorarExecucao=True
     preprocessamento.PreProcessamento()\
-                    .carregarListaGlobalAudiosTreinamento_(paralelo=True, monitorarExecucao=True)
+                    .carregarListaGlobalAudiosTreinamento_(paralelo=True, monitorarExecucao=False)
 
     listaTreinamento = preprocessamento.PreProcessamento().listaGlobalAudios
     print(len(listaTreinamento))
-
+    
     '''
-    data = treina._load_and_shuffle_data(data)
 
-    treina._split_training_and_validation_sets(audios, labels)
+    path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados/'
 
-    treina.train_fine_tuned_sequence_model(data)
-    '''
+    parallel = Parallel(n_jobs=4, backend='multiprocessing', verbose=5)
+    path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
+    parallel(delayed(TreinaModelo().carregarDadosArquivos)(os.path.join(path, arquivo_audio)) for arquivo_audio in os.listdir(path))
+
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(TreinaModelo().listaAudiosVetorizados, TreinaModelo().listaLabelsVetorizados)
+
+    print(X_train.shape)
+    print(y_train.shape)
 
     tempo_treinamento_modelo = time.clock() - inicio
     print('Tempo total de treinamento do modelo:  {} segundos'.format(tempo_treinamento_modelo))

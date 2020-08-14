@@ -418,11 +418,29 @@ class PreProcessamento(object):
         print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
 
 
+
+    def gravarDados(self, audio):
+
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados/'
+        path_audios = 'audios_vetorizados'
+        path_labels = 'audios_labels'
+
+        file_audio = os.path.join(path + path_audios, f'''__{audio.transcricao}__.npy''')
+        file_label = os.path.join(path + path_labels, f'''__{audio.transcricao}__.npy''')
+
+        with open(file_audio) as f:
+            f.write(str(audio.log_energy))
+
+        with open(file_label) as f:
+            f.write(str(audio.label_encoded))
+
+
 if __name__ == '__main__':
 
     #backend = ["loky", "multiprocessing", "threading"]
     #PreProcessamento(numJobs=1, backend=backend[0], verbose=5)
     #PreProcessamento().carregarListaGlobalAudiosTreinamento_(paralelo=False, monitorarExecucao=False)
-    PreProcessamento().carregarListaGlobalAudiosTreinamento()
-    listaTreinamento = PreProcessamento().listaGlobalAudios
-    print(listaTreinamento)
+
+    PreProcessamento().obterDados()
+    parallel = Parallel(n_jobs=4, backend='multiprocessing', verbose=5)
+    parallel(delayed(PreProcessamento().gravarDados)(audio) for audio in PreProcessamento().listaGlobalAudios)
