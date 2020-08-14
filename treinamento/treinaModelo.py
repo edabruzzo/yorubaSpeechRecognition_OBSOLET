@@ -1,6 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
 
 import os
 import argparse
@@ -31,6 +28,7 @@ is neither small nor very large (~> 1500 && ~< 15K).
 
 
 https://github.com/google/eng-edu/blob/master/ml/guides/text_classification/train_fine_tuned_sequence_model.py
+
 https://developers.google.com/machine-learning/guides/text-classification/conclusion?hl=pl
 
 
@@ -39,18 +37,29 @@ https://towardsdatascience.com/customer-case-study-building-an-end-to-end-speech
 https://github.com/attardi/CNN_sentence/blob/master/process_data.py
 
 https://scikit-learn.org/stable/modules/multiclass.html
+
 https://en.wikipedia.org/wiki/Multi-label_classification
+
 https://keras.io/examples/nlp/text_classification_from_scratch/#two-options-to-vectorize-the-data
+
 https://www.tensorflow.org/tutorials/text/word_embeddings#encode_each_word_with_a_unique_number
+
 https://github.com/manashmandal/DeadSimpleSpeechRecognizer
+
 https://en.wikipedia.org/wiki/Discrete_cosine_transform
+
 https://en.wikipedia.org/wiki/Spectral_density#Power_spectral_density
+
 https://en.wikipedia.org/wiki/Mel-frequency_cepstrum
 
 https://keras.io/examples/audio/speaker_recognition_using_cnn/
+
 https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+
 https://medium.com/manash-en-blog/building-a-dead-simple-word-recognition-engine-using-convnet-in-keras-25e72c19c12b
+
 https://medium.com/@oyewusiwuraola/yor%C3%B9b%C3%A1-word-vector-representation-with-fasttext-fe905bf558ea
+
 https://fasttext.cc/docs/en/pretrained-vectors.html
 
 
@@ -261,16 +270,41 @@ class TreinaModelo(object):
 
 from treinamento import preprocessamento
 
+
 if __name__ == '__main__':
 
-    treina = TreinaModelo()
-    data = preprocessamento.dicionario_treinamento
-    data = treina._load_and_shuffle_data(data)
+    '''
+    
+    https://www.tensorflow.org/tutorials
+    
+    '''
 
-    # Get the review phrase and sentiment values.
-    audios = list(data.keys())
-    labels = np.array(data.values())
+    inicio = time.clock()
+
+    treina = TreinaModelo()
+
+    '''
+    #USADO PARA TESTAR DIFERENTES CONFIGURAÇÕES DE PARALELISMO
+    backend = ["loky", "multiprocessing", "threading"]
+    preprocessamento.PreProcessamento(numJobs=4, backend=backend[1], verbose=5)\
+                    .carregarListaGlobalAudiosTreinamento_(paralelo=False, monitorarExecucao=False)
+    
+    '''
+
+    #Configuração padrão: n_jobs=4, backend=multiprocessing, verbose=5, paralelo=True, monitorarExecucao=True
+    preprocessamento.PreProcessamento()\
+                    .carregarListaGlobalAudiosTreinamento_(paralelo=True, monitorarExecucao=True)
+
+    listaTreinamento = preprocessamento.PreProcessamento().listaGlobalAudios
+    print(len(listaTreinamento))
+
+    '''
+    data = treina._load_and_shuffle_data(data)
 
     treina._split_training_and_validation_sets(audios, labels)
 
     treina.train_fine_tuned_sequence_model(data)
+    '''
+
+    tempo_treinamento_modelo = time.clock() - inicio
+    print('Tempo total de treinamento do modelo:  {} segundos'.format(tempo_treinamento_modelo))

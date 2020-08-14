@@ -1,0 +1,40 @@
+/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:493: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
+  _np_qint8 = np.dtype([("qint8", np.int8, 1)])
+/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:494: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
+  _np_quint8 = np.dtype([("quint8", np.uint8, 1)])
+/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:495: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
+  _np_qint16 = np.dtype([("qint16", np.int16, 1)])
+/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:496: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
+  _np_quint16 = np.dtype([("quint16", np.uint16, 1)])
+/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:497: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
+  _np_qint32 = np.dtype([("qint32", np.int32, 1)])
+/home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:502: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
+  np_resource = np.dtype([("resource", np.ubyte, 1)])
+Iniciando montagem da lista com nomes dos arquivos de áudio e transcrições
+Tempo total de pré-processamento dos dados:  0.014197999999999933 segundos
+0
+Tempo total de treinamento do modelo:  0.014483999999999941 segundos
+Efetuando o monitoramento do processo PID 7012
+Status atual do processo de PID 7012: running
+[Parallel(n_jobs=4)]: Using backend MultiprocessingBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  12 tasks      | elapsed:    0.0s
+[Parallel(n_jobs=4)]: Done 2040 tasks      | elapsed:    0.8s
+[Parallel(n_jobs=4)]: Done 4316 out of 4316 | elapsed:    1.6s finished
+Tempo de processamento da vetorizacao 0.31633100000000003
+[array([], dtype='<U16')]
+Iniciando atualização de caminhos para arquivos de áudio
+Iniciando conversão dos audios em espectogramas e log_energy
+[Parallel(n_jobs=4)]: Using backend MultiprocessingBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  12 tasks      | elapsed:    0.3s
+[Parallel(n_jobs=4)]: Done 120 tasks      | elapsed:    2.2s
+[Parallel(n_jobs=4)]: Done 300 tasks      | elapsed:    5.8s
+[Parallel(n_jobs=4)]: Done 552 tasks      | elapsed:   10.8s
+[Parallel(n_jobs=4)]: Done 876 tasks      | elapsed:   16.5s
+[Parallel(n_jobs=4)]: Done 1272 tasks      | elapsed:   23.9s
+[Parallel(n_jobs=4)]: Done 1740 tasks      | elapsed:   33.3s
+[Parallel(n_jobs=4)]: Done 2280 tasks      | elapsed:   44.4s
+[Parallel(n_jobs=4)]: Done 2892 tasks      | elapsed:   58.5s
+[Parallel(n_jobs=4)]: Done 3576 tasks      | elapsed:  1.3min
+[Parallel(n_jobs=4)]: Done 4316 out of 4316 | elapsed:  1.5min finished
+<treinamento.audio.Audio object at 0x7f2363ee1cf8>
+Process finished (208.16 seconds)

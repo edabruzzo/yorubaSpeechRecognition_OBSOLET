@@ -47,15 +47,47 @@ class PreProcessamento(object):
 
     listaGlobalAudios = []
     vocabulario = []
+    configuracao_paralelismo = {}
+
+    def __init__(self, numJobs=4, verbose=5, backend='multiprocessing'):
+
+        '''
+        https://stackabuse.com/parallel-processing-in-python/
+        https://www.machinelearningplus.com/python/parallel-processing-python/#:~:text=In%20python%2C%20the%20multiprocessing%20module,in%20completely%20separate%20memory%20locations.
 
 
-    def __init__(self, configuracao):
+        https://psutil.readthedocs.io/en/release-2.2.1/
+        '''
 
-        # https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
-        if configuracao_paralelizacao['n_jobs'] == 1:
-            configuracao_paralelizacao['backend'] = None
-        self.configuracao = configuracao
+        '''
+        PARÂMETROS DE PARALELIZAÇÃO
+        https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
 
+        n_jobs = 4   # máximo número de cpus = psutil.cpu_count() 
+
+        using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
+
+        backend = "multiprocessing"    
+        backend = "threading"
+
+        “loky” used by default, can induce some communication and memory overhead when exchanging input and output data with the worker Python processes.
+    “multiprocessing” previous process-based backend based on multiprocessing.Pool. Less robust than loky.
+    “threading” is a very low-overhead backend but it suffers from the Python Global Interpreter Lock if the called function relies a lot on Python objects. “threading” is mostly useful when the execution bottleneck is a compiled extension that explicitly releases the GIL (for instance a Cython loop wrapped in a “with nogil” block or an expensive call to a library such as NumPy).
+    finally, you can register backends by calling register_parallel_backend. This will allow you to implement a backend of your liking.
+
+        https://scikit-learn.org/stable/modules/generated/sklearn.utils.parallel_backend.html
+        https://stackoverflow.com/questions/59136430/how-does-scikit-learn-handle-multiple-n-jobs-arguments
+
+        TESTAR DIFERENTES PARÂMETROS DE PARALELIZAÇÃO E VER O EFEITO EM TEMPO E MEMÓRIA
+        '''
+
+        configuracao_paralelizacao = {}
+        # using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
+        configuracao_paralelizacao['n_jobs'] = numJobs
+        configuracao_paralelizacao['verbose'] = verbose
+        configuracao_paralelizacao['backend'] = backend
+
+        self.configuracao_paralelismo = configuracao_paralelizacao
 
 
     def carregarListaAudiosNomesArquivosTranscricoes(self):
@@ -121,9 +153,9 @@ class PreProcessamento(object):
 
         print('Iniciando conversão dos audios em espectogramas e log_energy')
 
-        parallel = Parallel(n_jobs=self.configuracao['n_jobs'],
-                            backend=self.configuracao['backend'],
-                            verbose=self.configuracao['verbose'])
+        parallel = Parallel(n_jobs=self.configuracao_paralelismo['n_jobs'],
+                            backend=self.configuracao_paralelismo['backend'],
+                            verbose=self.configuracao_paralelismo['verbose'])
 
         parallel(delayed(self.extrairLogEnergyMelSpectogram_Paralelizado)(audio) for audio in self.listaGlobalAudios)
 
@@ -232,9 +264,9 @@ class PreProcessamento(object):
 
         self.vetorizador.fit(self.vocabulario)
 
-        parallel = Parallel(n_jobs=self.configuracao['n_jobs'],
-                            backend=self.configuracao['backend'],
-                            verbose=self.configuracao['verbose'])
+        parallel = Parallel(n_jobs=self.configuracao_paralelismo['n_jobs'],
+                            backend=self.configuracao_paralelismo['backend'],
+                            verbose=self.configuracao_paralelismo['verbose'])
 
         parallel(delayed(self.vetorizar_transcricao)(audio) for audio in self.listaGlobalAudios)
 
@@ -302,7 +334,6 @@ class PreProcessamento(object):
 
     def obterDados(self):
 
-        inicio = time.clock()
 
         self.carregarListaAudiosNomesArquivosTranscricoes()
         self.converterTranscricaoCategoricalDecoder()
@@ -316,97 +347,82 @@ class PreProcessamento(object):
         parallel(delayed(treinamento.carregarListaGlobalAudiosTreinamento)(key, treinamento.dicionario_treinamento_encoded[key]) for key in treinamento.dicionario_treinamento_encoded)
         '''
 
-        tempo_processamento = time.clock() - inicio
-
         print(self.listaGlobalAudios[0])
-
-        print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
 
         return self.listaGlobalAudios
 
 
 
+    def carregarListaGlobalAudiosTreinamento_(self, paralelo=True, monitorarExecucao=True):
+
+        inicio = time.clock()
+        '''
+                            Importei o arquivo para monitoramento de memória do sequinte projeto:
+                            https://github.com/astrofrog/psrecord/blob/master/psrecord/main.py
+
+                            Arquivo importado no diretório: /usr/lib/python3.6/
+                            Nome: monitoramento_memoria.py
+
+        '''
+        from monitoramento import monitoramento_PROPRIETARY as monitoramento_memoria
+        # from monitoramento import monitoramento_memoria
+
+        import datetime
+
+        pid = os.getpid()
+
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition/monitoramento'
+        arquivoLog = os.path.join(path, f'yorubaSpeechRecognition__'
+                                            f'{str(datetime.datetime.today())}__'
+                                            f'{str(datetime.time())}__')
+
+        from multiprocessing import Process
+
+        configuracao_paralelizacao = self.configuracao_paralelismo
+
+        # https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
+        if self.configuracao_paralelismo['n_jobs'] == 1:
+            # Apenas para efito de log
+            configuracao_paralelizacao['backend'] = 'SequentialBackend'
 
 
+        if paralelo:
+            '''
+            PRÉ-PROCESSAMENTO
+            '''
+            p1 = Process(target=self.obterDados)
+            p1.start()
+            pid_subProcess = p1.pid
+            if pid_subProcess is not None:
+                pid = pid_subProcess
+
+        if monitorarExecucao:
+            '''
+             Processo rodando em paralelo para monitora uso de memória, CPU, tempo decorrido no pré-processamento    
+            '''
+            p2 = Process(target=monitoramento_memoria.monitor,
+                         args=(configuracao_paralelizacao,
+                               pid,
+                               arquivoLog + '.txt',
+                               arquivoLog + '.png'))
+            p2.start()
+
+
+        if not paralelo:
+
+            self.configuracao_paralelismo['n_jobs'] = 1
+            self.obterDados()
+
+
+        tempo_processamento = time.clock() - inicio
+        print('Tempo total de pré-processamento dos dados:  {} segundos'.format(tempo_processamento))
 
 
 if __name__ == '__main__':
 
-    '''
-    Importei o arquivo para monitoramento de memória do sequinte projeto: 
-    https://github.com/astrofrog/psrecord/blob/master/psrecord/main.py
-    
-    Arquivo importado no diretório: /usr/lib/python3.6/
-    Nome: monitoramento_memoria.py 
-    
-    '''
-    from monitoramento import monitoramento_PROPRIETARY as monitoramento_memoria
-    #from monitoramento import monitoramento_memoria
-
-    import datetime
-
-    pid_python = os.getpid()
-
-    path = '/home/usuario/mestrado/yorubaSpeechRecognition/monitoramento'
-    arquivoLog = os.path.join(path, f'yorubaSpeechRecognition__'
-                                    f'{str(datetime.datetime.today())}__'
-                                    f'{str(datetime.time())}__')
-
-    from multiprocessing import Process
-    '''
-    https://stackabuse.com/parallel-processing-in-python/
-    https://www.machinelearningplus.com/python/parallel-processing-python/#:~:text=In%20python%2C%20the%20multiprocessing%20module,in%20completely%20separate%20memory%20locations.
-    
-    
-    https://psutil.readthedocs.io/en/release-2.2.1/
-    '''
-
-    '''
-    PARÂMETROS DE PARALELIZAÇÃO
-    https://joblib.readthedocs.io/en/latest/generated/joblib.Parallel.html
-    
-    n_jobs = 4   # máximo número de cpus = psutil.cpu_count() 
-    
-    using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
-
-    backend = "multiprocessing"    
-    backend = "threading"
-    
-    “loky” used by default, can induce some communication and memory overhead when exchanging input and output data with the worker Python processes.
-“multiprocessing” previous process-based backend based on multiprocessing.Pool. Less robust than loky.
-“threading” is a very low-overhead backend but it suffers from the Python Global Interpreter Lock if the called function relies a lot on Python objects. “threading” is mostly useful when the execution bottleneck is a compiled extension that explicitly releases the GIL (for instance a Cython loop wrapped in a “with nogil” block or an expensive call to a library such as NumPy).
-finally, you can register backends by calling register_parallel_backend. This will allow you to implement a backend of your liking.
-
-    https://scikit-learn.org/stable/modules/generated/sklearn.utils.parallel_backend.html
-    https://stackoverflow.com/questions/59136430/how-does-scikit-learn-handle-multiple-n-jobs-arguments
-    
-    TESTAR DIFERENTES PARÂMETROS DE PARALELIZAÇÃO E VER O EFEITO EM TEMPO E MEMÓRIA
-    '''
-
-
-    configuracao_paralelizacao = {}
-    #using ‘n_jobs=1’ enables to turn off parallel computing for debugging without changing the codepath
-    configuracao_paralelizacao['n_jobs'] = 4
-    configuracao_paralelizacao['verbose'] = 5
-    backend = ["loky", "multiprocessing", "threading"]
-
-    if configuracao_paralelizacao['n_jobs'] == 1:
-        configuracao_paralelizacao['backend'] = 'SequentialBackend'
-
-    configuracao_paralelizacao['backend'] = backend[1]
-
-
-    preProcessamento = PreProcessamento(configuracao_paralelizacao)
-
-    '''
-    PRÉ-PROCESSAMENTO
-    '''
-    p1 = Process(target=preProcessamento.obterDados)
-    p1.start()
-
-
-    '''
-    Processo rodando em paralelo para monitora uso de memória, CPU, tempo decorrido no pré-processamento    
-    '''
-    p2 = Process(target=monitoramento_memoria.monitor, args=(configuracao_paralelizacao, p1.pid, arquivoLog + '.txt', arquivoLog + '.png'))
-    p2.start()
+    #backend = ["loky", "multiprocessing", "threading"]
+    #PreProcessamento(numJobs=1, backend=backend[0], verbose=5)
+    #PreProcessamento().carregarListaGlobalAudiosTreinamento_(paralelo=False, monitorarExecucao=False)
+    PreProcessamento().carregarListaGlobalAudiosTreinamento()
+    listaTreinamento = PreProcessamento().listaGlobalAudios
+    print(listaTreinamento)
