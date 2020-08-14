@@ -1,3 +1,5 @@
+pydev debugger: process 17202 is connecting
+
 /home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:493: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
   _np_qint8 = np.dtype([("qint8", np.int8, 1)])
 /home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:494: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
@@ -11,14 +13,6 @@
 /home/usuario/mestrado/yorubaSpeechRecognition/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/tensorflow/python/framework/dtypes.py:502: FutureWarning: Passing (type, 1) or '1type' as a synonym of type is deprecated; in a future version of numpy, it will be understood as (type, (1,)) / '(1,)type'.
   np_resource = np.dtype([("resource", np.ubyte, 1)])
 Iniciando montagem da lista com nomes dos arquivos de áudio e transcrições
-[Parallel(n_jobs=4)]: Using backend MultiprocessingBackend with 4 concurrent workers.
-[Parallel(n_jobs=4)]: Done  12 tasks      | elapsed:    0.0s
-[Parallel(n_jobs=4)]: Done 2040 tasks      | elapsed:    1.0s
-[Parallel(n_jobs=4)]: Done 4316 out of 4316 | elapsed:    2.1s finished
-Tempo de processamento da vetorizacao 0.27410299999999976
-[array([], dtype='<U16')]
+Tempo de processamento da vetorizacao 2.3533740000000005
+[array(['inu', 'pelu', 'tuntun', 'wo', 'ọdun'], dtype='<U16')]
 Iniciando atualização de caminhos para arquivos de áudio
-Iniciando conversão dos audios em espectogramas e log_energy
-[Parallel(n_jobs=4)]: Using backend MultiprocessingBackend with 4 concurrent workers.
-[Parallel(n_jobs=4)]: Done  12 tasks      | elapsed:    0.5s
-[Parallel(n_jobs=4)]: Done 120 tasks      | elapsed:    3.4s

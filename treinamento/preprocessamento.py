@@ -11,6 +11,8 @@ from treinamento import audio
 import time
 import psutil
 from util.paralelizacao import Paralelizacao
+from util.sequencial import Sequencial
+
 
 '''
 REFERÊNCIAS: 
@@ -48,7 +50,7 @@ class PreProcessamento(object):
     vocabulario = []
     configuracao_paralelismo = {}
 
-    def __init__(self, numJobs=4, verbose=5, backend='multiprocessing'):
+    def __init__(self, numJobs=4, verbose=5, backend='multiprocessing', executarEmParalelo=True):
 
         '''
         https://stackabuse.com/parallel-processing-in-python/
@@ -86,6 +88,7 @@ class PreProcessamento(object):
         configuracao_paralelizacao['verbose'] = verbose
         configuracao_paralelizacao['backend'] = backend
 
+        self.executarEmParalelo = executarEmParalelo
         self.configuracao_paralelismo = configuracao_paralelizacao
 
 
@@ -152,8 +155,11 @@ class PreProcessamento(object):
 
         print('Iniciando conversão dos audios em espectogramas e log_energy')
 
-        Paralelizacao().executarMetodoParalelo(self.extrairLogEnergyMelSpectogram,
-                                               self.listaGlobalAudios)
+        if self.executarEmParalelo:
+            Paralelizacao().executarMetodoParalelo(self.extrairLogEnergyMelSpectogram,
+                                                   self.listaGlobalAudios)
+        else:
+            Sequencial().executarMetodoEmSequencia(self.extrairLogEnergyMelSpectogram, self.listaGlobalAudios)
 
 
     def extrairLogEnergyMelSpectogram(self, audio):
@@ -260,8 +266,10 @@ class PreProcessamento(object):
 
         self.vetorizador.fit(self.vocabulario)
 
-        Paralelizacao().executarMetodoParalelo(self.vetorizar_transcricao, self.listaGlobalAudios)
-
+        if self.executarEmParalelo:
+            Paralelizacao().executarMetodoParalelo(self.vetorizar_transcricao, self.listaGlobalAudios)
+        else:
+            Sequencial().executarMetodoEmSequencia(self.vetorizar_transcricao, self.listaGlobalAudios)
 
         processamento_vetorizacao = time.clock() - inicio_vetorizacao
         print('Tempo de processamento da vetorizacao {}'.format(processamento_vetorizacao))

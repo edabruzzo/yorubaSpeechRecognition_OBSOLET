@@ -269,7 +269,8 @@ class TreinaModelo(object):
 
 
 from treinamento import preprocessamento
-from util import paralelizacao
+from util.paralelizacao import Paralelizacao
+from util.sequencial import Sequencial
 
 if __name__ == '__main__':
 
@@ -304,14 +305,17 @@ if __name__ == '__main__':
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
     '''
 
-    preprocessamento.PreProcessamento().obterDados()
+    preprocessamento.PreProcessamento(executarEmParalelo=False).obterDados()
     listaTreinamento = preprocessamento.PreProcessamento().listaGlobalAudios
-    paralelizacao.Paralelizacao().executarMetodoParalelo(TreinaModelo().extrairDados, listaTreinamento)
+
+    #Paralelizacao().executarMetodoParalelo(TreinaModelo().extrairDados(), listaTreinamento)
+    Sequencial().executarMetodoEmSequencia(TreinaModelo().extrairDados, listaTreinamento)
+
     X = TreinaModelo().listaAudiosVetorizados
     y = TreinaModelo().listaLabelsVetorizados
 
-    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(X, y)
 
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(X, y)
     print(X_train.shape)
     print(y_train.shape)
 
