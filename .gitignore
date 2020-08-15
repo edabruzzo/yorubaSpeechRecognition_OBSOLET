@@ -3,3 +3,5 @@ videos/
 .idea/
 */__pycache__/*
 monitoramento/monitoramento_PROPRIETARY.py
+logExecucao/*
+espectogramas/*

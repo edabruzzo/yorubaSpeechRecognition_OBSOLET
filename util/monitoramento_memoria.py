@@ -34,7 +34,7 @@ class Monitoramento(object):
         else:
             pid = os.getpid()
 
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition/monitoramento'
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition/logExecucao/monitoramento_memoria/'
 
         arquivoLog = os.path.join(path, f'yorubaSpeechRecognition__'
                                         f'{str(datetime.datetime.today())}__'
