@@ -50,7 +50,7 @@ class PreProcessamento(object):
     listaGlobalAudios = []
     vocabulario = []
     configuracao_paralelismo = {}
-    dimensao_maxima_vetor_audios = 50
+    dimensao_maxima_vetor_audios = 180
 
     def __init__(self, numJobs=4, verbose=5, backend='multiprocessing', executarEmParalelo=True):
 
@@ -132,6 +132,7 @@ class PreProcessamento(object):
                             audioObj = audio.Audio(nome_arquivo_audio, None, transcricao, None, None)
                             self.listaGlobalAudios.append(audioObj)
                             self.vocabulario.append(transcricao)
+                            break
 
                     except UnicodeError as e:
                         pass
@@ -153,6 +154,7 @@ class PreProcessamento(object):
                     if audio.nome_arquivo + '.wav' in arquivo:
                         caminho_audio = os.path.join(root, audio.nome_arquivo + '.wav')
                         audio.caminho_arquivo = caminho_audio
+                        break
 
 
 
@@ -241,12 +243,12 @@ class PreProcessamento(object):
         if (dimensao_maxima > log_energy_espectograma.shape[1]):
 
             padding = dimensao_maxima - log_energy_espectograma.shape[1]
-            mel_frequency_cepstrum_coefficients = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
+            log_energy_espectograma = np.pad(log_energy_espectograma, pad_width=((0, 0), (0, padding)),
                                                          mode='constant')
 
         # Else cutoff the remaining parts
         else:
-            mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
+            log_energy_espectograma = log_energy_espectograma[:, : dimensao_maxima]
 
         audio.log_energy = log_energy_espectograma
         self.gravarDados(audio)
@@ -357,18 +359,17 @@ class PreProcessamento(object):
         self.montarListaCaminhosArquivosAudio()
 
 
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition/dadosVetorizados/audios_vetorizados'
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
         header = ''
         # Porque 21 mfccs ? RESPOSTA: https://link.springer.com/content/pdf/bbm%3A978-3-319-03116-3%2F1.pdf
-        for i in range(1, self.dimensao_maxima_vetor_audios + 1):
+        for i in range(1, self.dimensao_maxima_vetor_audios):
             header += f' log_energy_mfcc{i}'
         header += ' transcricao'
         header = header.split()
 
-        with open(os.path.join(path, 'dataset.csv'), 'w', newline='') as file_:
-            writer = csv.writer(file_)
-            writer.writerow(header)
-
+        file_ = open(os.path.join(path, 'dataset.csv'), 'w', newline='')
+        writer = csv.writer(file_)
+        writer.writerow(header)
         file_.close()
 
 
@@ -381,12 +382,13 @@ class PreProcessamento(object):
         parallel(delayed(treinamento.carregarListaGlobalAudiosTreinamento)(key, treinamento.dicionario_treinamento_encoded[key]) for key in treinamento.dicionario_treinamento_encoded)
         '''
 
-        print(self.listaGlobalAudios[0])
+        self.gravar_CSV()
+
 
         return self.listaGlobalAudios
 
 
-    para_gravar_CSV = []
+    para_gravar_CSV =''
 
     def gravarDados(self, audio):
 
@@ -398,19 +400,19 @@ class PreProcessamento(object):
         '''
 
         #Preciso decidir se farei padding ou não
-        for i in range (1, self.dimensao_maxima_vetor_audios + 1):
-            self.para_gravar_CSV += f' {np.mean(audio.log_energy[:, i])}'
+        for i in range (1, self.dimensao_maxima_vetor_audios):
+            self.para_gravar_CSV += f'_{np.mean(audio.log_energy[:, i])}'
 
-        self.para_gravar_CSV = f' {audio.transcricao}'
+        self.para_gravar_CSV += f'_{audio.transcricao}'
 
 
 
     def gravar_CSV(self):
 
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition/dadosVetorizados/audios_vetorizados'
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
         with open(os.path.join(path, 'dataset.csv'), 'a', newline='') as file:
             writer = csv.writer(file)
-            writer.writerow(self.para_gravar_CSV.split())
+            writer.writerow(self.para_gravar_CSV.split("_"))
 
 
 

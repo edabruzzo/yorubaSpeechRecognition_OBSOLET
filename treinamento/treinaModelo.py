@@ -262,9 +262,9 @@ class TreinaModelo(object):
 
         '''
 
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition/dadosVetorizados/audios_vetorizados'
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
         data = pd.read_csv(os.path.join(path, 'dataset.csv'))
-        vocabulario = data[:, -1]
+        vocabulario = data[:, 'transcricao']
         vetorizador = CountVectorizer()
         y = vetorizador.fit_transform(vocabulario)  # Scaling the Feature columns
         scaler = StandardScaler()
@@ -316,9 +316,9 @@ if __name__ == '__main__':
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
     '''
 
-    processa = PreProcessamento(executarEmParalelo=True)
-    Monitoramento().monitorar_memoria(processa.obterDados, configuracao_paralelizacao=processa.configuracao_paralelismo)
-
+    processa = PreProcessamento(executarEmParalelo=False)
+    #Monitoramento().monitorar_memoria(processa.obterDados, configuracao_paralelizacao=processa.configuracao_paralelismo)
+    processa.obterDados()
     (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao( )
 
     print(X_train.shape)
