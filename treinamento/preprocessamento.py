@@ -167,7 +167,7 @@ class PreProcessamento(object):
 
     def extrairLogEnergyMelSpectogram(self, audio):
 
-        dimensao_maxima = 50
+        dimensao_maxima = 200
         sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
         espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
 

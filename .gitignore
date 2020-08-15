@@ -1,7 +1,7 @@
 environmentYorubaSpeechRecognition/
 videos/
 .idea/
-*/__pycache__/*
+/*/__pycache__/*
 monitoramento/monitoramento_PROPRIETARY.py
-logExecucao/*
-espectogramas/*
+logExecucao/
+espectogramas/
