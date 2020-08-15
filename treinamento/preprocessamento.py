@@ -9,9 +9,10 @@ import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from treinamento import audio
 import time
-import psutil
+#import psutil
 from util.paralelizacao import Paralelizacao
 from util.sequencial import Sequencial
+import csv
 
 
 '''
@@ -49,6 +50,7 @@ class PreProcessamento(object):
     listaGlobalAudios = []
     vocabulario = []
     configuracao_paralelismo = {}
+    dimensao_maxima_vetor_audios = 50
 
     def __init__(self, numJobs=4, verbose=5, backend='multiprocessing', executarEmParalelo=True):
 
@@ -165,9 +167,10 @@ class PreProcessamento(object):
             Sequencial().executarMetodoEmSequencia(self.extrairLogEnergyMelSpectogram, self.listaGlobalAudios)
 
 
+
     def extrairLogEnergyMelSpectogram(self, audio):
 
-        dimensao_maxima = 200
+        dimensao_maxima = self.dimensao_maxima_vetor_audios
         sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
         espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
 
@@ -224,6 +227,14 @@ class PreProcessamento(object):
 
         How to normalize MFCCs
         https://www.kaggle.com/c/freesound-audio-tagging/discussion/54082
+        
+        Melody Accompainment Separation - Examples
+        https://linux.ime.usp.br/~shayenne/mac0499/results/Examples
+        
+        ***Nos arquivos da bíblia em Yorubá talvez seja necessário retirar melodias de fundo 
+
+
+        https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
 
         '''
 
@@ -238,6 +249,8 @@ class PreProcessamento(object):
             mel_frequency_cepstrum_coefficients = log_energy_espectograma[:, : dimensao_maxima]
 
         audio.log_energy = log_energy_espectograma
+        self.gravarDados(audio)
+
 
 
     vetorizador = CountVectorizer()
@@ -339,9 +352,27 @@ class PreProcessamento(object):
 
 
         self.carregarListaAudiosNomesArquivosTranscricoes()
-        self.converterTranscricaoCategoricalDecoder()
-        self.vocabulario = [] # Neste ponto não preciso mais da lista de vocabulários
+        #self.converterTranscricaoCategoricalDecoder()
+        #self.vocabulario = [] # Neste ponto não preciso mais da lista de vocabulários
         self.montarListaCaminhosArquivosAudio()
+
+
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition/dadosVetorizados/audios_vetorizados'
+        header = ''
+        # Porque 21 mfccs ? RESPOSTA: https://link.springer.com/content/pdf/bbm%3A978-3-319-03116-3%2F1.pdf
+        for i in range(1, self.dimensao_maxima_vetor_audios + 1):
+            header += f' log_energy_mfcc{i}'
+        header += ' transcricao'
+        header = header.split()
+
+        with open(os.path.join(path, 'dataset.csv'), 'w', newline='') as file_:
+            writer = csv.writer(file_)
+            writer.writerow(header)
+
+        file_.close()
+
+
+
         self.carregarListaGlobalAudiosTreinamento()
 
         '''
@@ -355,21 +386,33 @@ class PreProcessamento(object):
         return self.listaGlobalAudios
 
 
+    para_gravar_CSV = []
 
     def gravarDados(self, audio):
 
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados/'
-        path_audios = 'audios_vetorizados'
-        path_labels = 'audios_labels'
+        '''
+        https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
+        
+        :param audio: 
+        :return: 
+        '''
 
-        file_audio = os.path.join(path + path_audios, f'__{audio.transcricao}__.npy')
-        file_label = os.path.join(path + path_labels, f'__{audio.transcricao}__.npy')
+        #Preciso decidir se farei padding ou não
+        for i in range (1, self.dimensao_maxima_vetor_audios + 1):
+            self.para_gravar_CSV += f' {np.mean(audio.log_energy[:, i])}'
 
-        with open(file_audio, 'w') as f:
-            f.write(str(audio.log_energy))
+        self.para_gravar_CSV = f' {audio.transcricao}'
 
-        with open(file_label, 'w') as f:
-            f.write(str(audio.label_encoded))
+
+
+    def gravar_CSV(self):
+
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition/dadosVetorizados/audios_vetorizados'
+        with open(os.path.join(path, 'dataset.csv'), 'a', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerow(self.para_gravar_CSV.split())
+
+
 
 
 if __name__ == '__main__':

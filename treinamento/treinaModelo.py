@@ -2,17 +2,27 @@
 import os
 import argparse
 import time
-
+import pandas as pd
 import numpy as np
 
 import tensorflow as tf
 from tensorflow.python.keras.preprocessing import sequence
 from tensorflow.python.keras.preprocessing import text
-
 from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import CountVectorizer
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+#from keras import layers
+#from keras import layers
+#import keras
+#from keras.models import Sequential
 
+import warnings
+warnings.filterwarnings('ignore')
 
-
+from treinamento.preprocessamento import PreProcessamento
+from util.paralelizacao import Paralelizacao
+from util.sequencial import Sequencial
+from util.monitoramento_memoria import Monitoramento
 
 """
 
@@ -218,21 +228,6 @@ class TreinaModelo(object):
         model.save('tweet_weather_sepcnn_fine_tuned_model.h5')
         return history['val_acc'][-1], history['val_loss'][-1]
 
-    def obter_conjuntos_treinamento_validacao(self, audios, labels):
-
-        # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
-        X_train, X_test, y_train, y_test = train_test_split(np.array(audios),
-                                                    np.array(labels),
-                                                    stratify=labels,
-                                                    test_size=0.2,
-                                                    random_state=777,
-                                                    shuffle=True)
-
-
-        return ((X_train, y_train), (X_test, y_test))
-
-
-
 
     def sequence_vectorize(self, train_labels, val_labels):
 
@@ -258,19 +253,35 @@ class TreinaModelo(object):
         return y_train, y_val, tokenizer.word_index
 
 
-    listaAudiosVetorizados = []
-    listaLabelsVetorizados = []
+    def obter_conjuntos_treinamento_validacao(self):
+        '''
 
-    def extrairDados(self, audio):
-        self.listaAudiosVetorizados.append(audio.log_energy)
-        self.listaLabelsVetorizados.append(audio.label_encoded)
+        https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
+
+        :return:
+
+        '''
+
+        path = '/home/usuario/mestrado/yorubaSpeechRecognition/dadosVetorizados/audios_vetorizados'
+        data = pd.read_csv(os.path.join(path, 'dataset.csv'))
+        vocabulario = data[:, -1]
+        vetorizador = CountVectorizer()
+        y = vetorizador.fit_transform(vocabulario)  # Scaling the Feature columns
+        scaler = StandardScaler()
+        X = scaler.fit_transform(np.array(data.iloc[:, :-1], dtype=float))
+
+        # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+        X_train, X_test, y_train, y_test = train_test_split(X,
+                                                            y,
+                                                            stratify=vocabulario,
+                                                            test_size=0.2,
+                                                            random_state=777,
+                                                            shuffle=True)
+
+        return ((X_train, y_train), (X_test, y_test))
 
 
 
-from treinamento import preprocessamento
-from util.paralelizacao import Paralelizacao
-from util.sequencial import Sequencial
-from util.monitoramento_memoria import Monitoramento
 
 if __name__ == '__main__':
 
@@ -305,18 +316,11 @@ if __name__ == '__main__':
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
     '''
 
-    processa = preprocessamento.PreProcessamento(executarEmParalelo=False)
+    processa = PreProcessamento(executarEmParalelo=True)
     Monitoramento().monitorar_memoria(processa.obterDados, configuracao_paralelizacao=processa.configuracao_paralelismo)
-    listaTreinamento = preprocessamento.PreProcessamento().listaGlobalAudios
 
-    #Paralelizacao().executarMetodoParalelo(TreinaModelo().extrairDados(), listaTreinamento)
-    Sequencial().executarMetodoEmSequencia(TreinaModelo().extrairDados, listaTreinamento)
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao( )
 
-    X = TreinaModelo().listaAudiosVetorizados
-    y = TreinaModelo().listaLabelsVetorizados
-
-
-    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(X, y)
     print(X_train.shape)
     print(y_train.shape)
 
