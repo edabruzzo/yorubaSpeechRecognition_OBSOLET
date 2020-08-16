@@ -132,7 +132,7 @@ class PreProcessamento(object):
                             audioObj = audio.Audio(nome_arquivo_audio, None, transcricao, None, None)
                             self.listaGlobalAudios.append(audioObj)
                             self.vocabulario.append(transcricao)
-                            break
+
 
                     except UnicodeError as e:
                         pass
@@ -154,7 +154,7 @@ class PreProcessamento(object):
                     if audio.nome_arquivo + '.wav' in arquivo:
                         caminho_audio = os.path.join(root, audio.nome_arquivo + '.wav')
                         audio.caminho_arquivo = caminho_audio
-                        break
+
 
 
 
@@ -357,23 +357,6 @@ class PreProcessamento(object):
         #self.converterTranscricaoCategoricalDecoder()
         #self.vocabulario = [] # Neste ponto não preciso mais da lista de vocabulários
         self.montarListaCaminhosArquivosAudio()
-
-
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
-        header = ''
-        # Porque 21 mfccs ? RESPOSTA: https://link.springer.com/content/pdf/bbm%3A978-3-319-03116-3%2F1.pdf
-        for i in range(1, self.dimensao_maxima_vetor_audios):
-            header += f' log_energy_mfcc{i}'
-        header += ' transcricao'
-        header = header.split()
-
-        file_ = open(os.path.join(path, 'dataset.csv'), 'w', newline='')
-        writer = csv.writer(file_)
-        writer.writerow(header)
-        file_.close()
-
-
-
         self.carregarListaGlobalAudiosTreinamento()
 
         '''
@@ -382,13 +365,10 @@ class PreProcessamento(object):
         parallel(delayed(treinamento.carregarListaGlobalAudiosTreinamento)(key, treinamento.dicionario_treinamento_encoded[key]) for key in treinamento.dicionario_treinamento_encoded)
         '''
 
-        self.gravar_CSV()
-
-
         return self.listaGlobalAudios
 
 
-    para_gravar_CSV =''
+    para_gravar_CSV = []
 
     def gravarDados(self, audio):
 
@@ -397,22 +377,20 @@ class PreProcessamento(object):
         
         :param audio: 
         :return: 
-        '''
 
         #Preciso decidir se farei padding ou não
         for i in range (1, self.dimensao_maxima_vetor_audios):
-            self.para_gravar_CSV += f'_{np.mean(audio.log_energy[:, i])}'
+            self.para_gravar_CSV.append(f'{np.mean(audio.log_energy[:, i])}')
 
-        self.para_gravar_CSV += f'_{audio.transcricao}'
+        self.para_gravar_CSV.append(f'{audio.transcricao}')
 
-
-
-    def gravar_CSV(self):
+        '''
 
         path = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
-        with open(os.path.join(path, 'dataset.csv'), 'a', newline='') as file:
-            writer = csv.writer(file)
-            writer.writerow(self.para_gravar_CSV.split("_"))
+        file = open(os.path.join(path, f'{audio.transcricao}.csv'), 'w')
+        np.savetxt(file, audio.log_energy, delimiter=",")
+        file.close()
+
 
 
 

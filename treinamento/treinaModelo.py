@@ -252,8 +252,22 @@ class TreinaModelo(object):
 
         return y_train, y_val, tokenizer.word_index
 
+    vocabulario = []
+    data_frames = []
+    path_audios_vetorizados = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
 
-    def obter_conjuntos_treinamento_validacao(self):
+    def extrairDataFramesVocabulario(self, arquivo):
+
+        self.data_frames.append(pd.read_csv(os.path.join(self.path_audios_vetorizados, f'{arquivo}'), header=None))
+        self.vocabulario.append(arquivo.replace('.csv', ''))
+
+    data = None
+
+    def concatenarDataFrames(self, data_frame):
+
+        self.data = pd.concat(data_frame)
+
+    def obter_conjuntos_treinamento_validacao(self, modo_debug=False):
         '''
 
         https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
@@ -262,18 +276,32 @@ class TreinaModelo(object):
 
         '''
 
-        path = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
-        data = pd.read_csv(os.path.join(path, 'dataset.csv'))
-        vocabulario = data[:, 'transcricao']
+        print('Iniciando obtenção de conjuntos de treinamento e validação')
+        # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
+        # https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
+
+        arquivos = [arquivo for arquivo in os.listdir(self.path_audios_vetorizados)]
+        print('Iniciando extração de DataFrames a partir de arquivos CSV')
+        if not modo_debug:
+            Paralelizacao().executarMetodoParalelo(self.extrairDataFramesVocabulario, arquivos)
+        if modo_debug:
+            Sequencial().executarMetodoEmSequencia(self.extrairDataFramesVocabulario, arquivos)
+        print('Iniciando concatenação de DataFrames')
+        if not modo_debug:
+            Paralelizacao().executarMetodoParalelo(self.concatenarDataFrames, self.data_frames)
+        if modo_debug:
+            Sequencial().executarMetodoEmSequencia(self.concatenarDataFrames, self.data_frames)
+
         vetorizador = CountVectorizer()
-        y = vetorizador.fit_transform(vocabulario)  # Scaling the Feature columns
+        y = vetorizador.fit_transform(self.vocabulario)
         scaler = StandardScaler()
-        X = scaler.fit_transform(np.array(data.iloc[:, :-1], dtype=float))
+
+        X = scaler.fit_transform(np.array(self.data, dtype=float))
 
         # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
         X_train, X_test, y_train, y_test = train_test_split(X,
                                                             y,
-                                                            stratify=vocabulario,
+                                                            stratify=self.vocabulario,
                                                             test_size=0.2,
                                                             random_state=777,
                                                             shuffle=True)
@@ -316,10 +344,10 @@ if __name__ == '__main__':
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
     '''
 
-    processa = PreProcessamento(executarEmParalelo=False)
+    #processa = PreProcessamento(executarEmParalelo=True)
     #Monitoramento().monitorar_memoria(processa.obterDados, configuracao_paralelizacao=processa.configuracao_paralelismo)
-    processa.obterDados()
-    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao( )
+    #processa.obterDados()
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(modo_debug=True)
 
     print(X_train.shape)
     print(y_train.shape)
