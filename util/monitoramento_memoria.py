@@ -8,6 +8,7 @@ import os
 
 class Monitoramento(object):
 
+
     def monitorar_memoria(self, funcao, configuracao_paralelizacao, argumentos=None):
 
         '''

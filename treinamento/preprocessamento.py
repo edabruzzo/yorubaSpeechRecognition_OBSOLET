@@ -3,6 +3,8 @@ import os
 import re
 import magic
 import librosa
+from scipy.io import wavfile
+from scipy.signal import stft
 from treinamento import audio
 import numpy as np
 #from keras.utils import np_utils
@@ -12,6 +14,7 @@ import time
 #import psutil
 from util.paralelizacao import Paralelizacao
 from util.sequencial import Sequencial
+
 import csv
 
 
@@ -140,40 +143,79 @@ class PreProcessamento(object):
                     ref_arquivo.close()
 
 
+    path_arquivo_caminhos_audios = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/arquivo_caminhos_audios.txt'
 
+    def criarArquivoComCaminhosParaArquivosAudio(self):
 
-    def montarListaCaminhosArquivosAudio(self):
+        self.carregarListaAudiosNomesArquivosTranscricoes()
 
         print('Iniciando atualização de caminhos para arquivos de áudio')
         caminho_arquivos_treinamento = '../../corpus'
 
+        file = open(self.path_arquivo_caminhos_audios, 'a')
 
         for audio in self.listaGlobalAudios:
             for (root, dirs, arquivos) in os.walk(caminho_arquivos_treinamento):
                 for arquivo in arquivos:
                     if audio.nome_arquivo + '.wav' in arquivo:
-                        caminho_audio = os.path.join(root, audio.nome_arquivo + '.wav')
-                        audio.caminho_arquivo = caminho_audio
+                        caminho_audio = os.path.join(root, audio.nome_arquivo + '.wav' + '__TRANSCRICAO__'+audio.transcricao+'__TRANSCRICAO__')
+                        file.write(caminho_audio)
+                        file.write('\n')
+        
+        file.close()
 
+    def carregarListaAudios_(self, nomeArquivo):
 
+        padrao_regex = '(.*)(__TRANSCRICAO__(.*)__TRANSCRICAO__)'
+        transcricao = re.search(padrao_regex, nomeArquivo).group(3)
+        nomeArquivo = re.search(padrao_regex, nomeArquivo).group(1)
+        audioObj = audio.Audio(None, nomeArquivo.replace('\n', '') + '.wav', transcricao, None, None)
+        self.listaGlobalAudios.append(audioObj)
 
 
     def carregarListaGlobalAudiosTreinamento(self):
 
         print('Iniciando conversão dos audios em espectogramas e log_energy')
 
+        listaArquivosWave = [line for line in open(self.path_arquivo_caminhos_audios, 'r').readlines()]
+
+
+        if self.executarEmParalelo:
+            Paralelizacao().executarMetodoParalelo(self.carregarListaAudios_,
+                                                   listaArquivosWave)
+        else:
+            Sequencial().executarMetodoEmSequencia(self.carregarListaAudios_,
+                                                   listaArquivosWave)
+
+
+
+        if self.executarEmParalelo:
+            Paralelizacao().executarMetodoParalelo(self.processarWaveFilesComSciPy,
+                                                   self.listaGlobalAudios)
+        else:
+            Sequencial().executarMetodoEmSequencia(self.processarWaveFilesComSciPy,
+                                                   self.listaGlobalAudios)
+
+
+        '''
+
         if self.executarEmParalelo:
             Paralelizacao().executarMetodoParalelo(self.extrairLogEnergyMelSpectogram,
                                                    self.listaGlobalAudios)
         else:
-            Sequencial().executarMetodoEmSequencia(self.extrairLogEnergyMelSpectogram, self.listaGlobalAudios)
-
+            Sequencial().executarMetodoEmSequencia(self.extrairLogEnergyMelSpectogram,
+                                                   self.listaGlobalAudios)
+        
+        '''
 
 
     def extrairLogEnergyMelSpectogram(self, audio):
 
         dimensao_maxima = self.dimensao_maxima_vetor_audios
         sinal_audio, sample_rate = librosa.load(audio.caminho_arquivo, sr=16000)
+        print('SINAL DE ÁUDIO: '+ str(len(sinal_audio)))
+        #https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+        #samples = librosa.resample(sinal_audio, sample_rate, 29980)
         espectograma = librosa.feature.melspectrogram(y=sinal_audio, sr=sample_rate)
 
         '''
@@ -238,6 +280,7 @@ class PreProcessamento(object):
 
         https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
 
+        https://github.com/rolczynski/Automatic-Speech-Recognition/tree/master/automatic_speech_recognition/features
         '''
 
         if (dimensao_maxima > log_energy_espectograma.shape[1]):
@@ -252,6 +295,45 @@ class PreProcessamento(object):
 
         audio.log_energy = log_energy_espectograma
         self.gravarDados(audio)
+
+
+    def processarWaveFilesComSciPy(self, audio, threshold_freq=5500):
+
+        # https://docs.scipy.org/doc/scipy/reference/generated/scipy.io.wavfile.read.html
+        # https://github.com/dawidkopczyk/speech_recognition
+
+        _, wav = wavfile.read(audio.caminho_arquivo)
+        # Normalize
+        wav = wav.astype(np.float32) / np.iinfo(np.int16).max
+
+        sample_rate = 16000
+
+        # If longer then randomly truncate
+        if len(wav) > sample_rate:
+            i = np.random.randint(0, len(wav) - sample_rate)
+            wav = wav[i:(i + sample_rate)]
+
+        elif len(wav) < sample_rate:
+            rem_len = sample_rate - len(wav)
+            silence_part = np.random.randint(-100, 100, 16000).astype(np.float32) / np.iinfo(np.int16).max
+            j = np.random.randint(0, rem_len)
+            silence_part_left = silence_part[0:j]
+            silence_part_right = silence_part[j:rem_len]
+            wav = np.concatenate([silence_part_left, wav, silence_part_right])
+        # Create spectrogram using discrete FFT (change basis to frequencies)
+        freqs, times, espectograma = stft(wav, sample_rate, nperseg=400, noverlap=240, nfft=512, padded=False, boundary=None)
+        # Cut high frequencies
+        if threshold_freq is not None:
+            espectograma = espectograma[freqs <= threshold_freq, :]
+            freqs = freqs[freqs <= threshold_freq]
+
+        # Log spectrogram
+        log_energy_espectograma = np.log(np.abs(espectograma) + 1e-10)
+
+        #log_energy = np.expand_dims(log_energy_espectograma, axis=2)
+        audio.log_energy = log_energy_espectograma
+        self.gravarDados(audio)
+
 
 
 
@@ -352,11 +434,9 @@ class PreProcessamento(object):
 
     def obterDados(self):
 
-
-        self.carregarListaAudiosNomesArquivosTranscricoes()
+        #self.criarArquivoComCaminhosParaArquivosAudio()
         #self.converterTranscricaoCategoricalDecoder()
         #self.vocabulario = [] # Neste ponto não preciso mais da lista de vocabulários
-        self.montarListaCaminhosArquivosAudio()
         self.carregarListaGlobalAudiosTreinamento()
 
         '''
@@ -369,6 +449,7 @@ class PreProcessamento(object):
 
 
     para_gravar_CSV = []
+
 
     def gravarDados(self, audio):
 

@@ -79,21 +79,72 @@ https://fasttext.cc/docs/en/pretrained-vectors.html
 
 class TreinaModelo(object):
 
+
+
     embedding_data_dir = '../../embeddings_yoruba'
 
-    # Limit on the number of features. We use the top 20K features.
-    TOP_K = 20000
 
-    # Range (inclusive) of n-gram sizes for tokenizing text.
-    NGRAM_RANGE = (1, 2)
+    # https://en.wikipedia.org/wiki/Yoruba_language
 
-    # Whether text should be split into word or character n-grams.
-    # One of 'word', 'char'.
-    TOKEN_MODE = 'word'
+    ALFABETO_YORUBÁ_SEM_DIACRÍTICOS = ['a', 'b', 'd', 'e',	'f',	'g',	'gb', 'h',	'i',
+                       'j',	'k',	'l',	'm',	'n',	'o',	'p',
+                       'r',	's',	't',	'u',	'w',	'y']
 
-    # Limit on the length of text sequences. Sequences longer than this
-    # will be truncated.
-    MAX_SEQUENCE_LENGTH = 500
+
+    ALFABETO_YORUBÁ_COM_DIACRÍTICOS_CARACTERES_ESPECIAIS =  ['á',  'à',	'ā','é','è','ē','ẹ','é̩','è̩',
+                                                             'ē̩','í','ì','ī','ó','ò','ō','ọ','ó̩','ò̩',
+                                                             'ō̩','ú','ù','ū','ṣ' ]
+
+    def vetorizar_labels(self, labels):
+
+        '''
+
+        The tensor s_integerized shows an example of string manipulation. In this case, we take a string and map it to an integer. This uses the convenience function tft.compute_and_apply_vocabulary. This function uses an analyzer to compute the unique values taken by the input strings, and then uses TensorFlow operations to convert the input strings to indices in the table of unique values.
+
+        https://www.tensorflow.org/tfx/transform/get_started
+
+        :param labels:
+        :return:
+        '''
+
+        alfabeto = list(self.ALFABETO_YORUBÁ_COM_DIACRÍTICOS_CARACTERES_ESPECIAIS
+                          + self.ALFABETO_YORUBÁ_SEM_DIACRÍTICOS)
+
+        table = tf.contrib.lookup.HashTable(
+            tf.contrib.lookup.KeyValueTensorInitializer(
+                alfabeto,
+                list(range(len(alfabeto)))
+            ),
+            -1,
+            name='char2id'
+        )
+
+        saida = table.lookup(tf.string_split(labels, delimiter=''))
+
+
+        return saida
+
+
+
+    def decode_labels_vetorizados(self, label_encoded):
+
+        alfabeto = list(self.ALFABETO_YORUBÁ_COM_DIACRÍTICOS_CARACTERES_ESPECIAIS
+                        + self.ALFABETO_YORUBÁ_SEM_DIACRÍTICOS)
+
+        table = tf.contrib.lookup.HashTable(
+            tf.contrib.lookup.KeyValueTensorInitializer(
+                list(range(len(alfabeto))),
+                alfabeto,
+            ),
+            '',
+            name='id2char'
+        )
+
+        saida = table.lookup(tf.string_split(label_encoded))
+
+        return saida
+
+
 
 
     def _get_embedding_matrix(self, word_index):
@@ -229,45 +280,46 @@ class TreinaModelo(object):
         return history['val_acc'][-1], history['val_loss'][-1]
 
 
-    def sequence_vectorize(self, train_labels, val_labels):
+    def vetorizador_text_sequence(self, label):
 
-        # Create vocabulary with training texts.
-        tokenizer = text.Tokenizer(num_words=self.TOP_K)
-        tokenizer.fit_on_texts(train_labels)
+        # https://realpython.com/python-keras-text-classification/
+        # reverter sequence to text: https://stackoverflow.com/questions/41971587/how-to-convert-predicted-sequence-back-to-text-in-keras
+        Y = self.tokenizer.texts_to_sequences(label)
+        return Y
 
-        # Vectorize training and validation texts.
-        y_train = tokenizer.texts_to_sequences(train_labels)
-        y_val = tokenizer.texts_to_sequences(val_labels)
+    tokenizer = text.Tokenizer( lower=True)
 
-        # Get max sequence length.
-        max_length = len(max(y_train, key=len))
-        if max_length > self.MAX_SEQUENCE_LENGTH:
-            max_length = self.MAX_SEQUENCE_LENGTH
+    def reverter_sequence_to_text(self, sequence):
+        # https://stackoverflow.com/questions/41971587/how-to-convert-predicted-sequence-back-to-text-in-keras
+        #dicionario_reverso = dict(map(reversed, self.tokenizer.word_index.items()))
+        #texto_original = [dicionario_reverso.get(item) for item in sequence]
 
-        # Fix sequence length to max value. Sequences shorter than the length are
-        # padded in the beginning and sequences longer are truncated
-        # at the beginning.
-        y_train = sequence.pad_sequences(y_train, maxlen=max_length)
-        y_val = sequence.pad_sequences(y_val, maxlen=max_length)
+        dicionario_reverso = {v: k for k, v in self.tokenizer.word_index.items()}
+        palavras = []
 
-        return y_train, y_val, tokenizer.word_index
+        for indice in sequence:
+            palavras.append(dicionario_reverso[indice])
+            palavras.append(' ')
+
+        return ''.join(palavras)
+
 
     vocabulario = []
-    data_frames = []
     path_audios_vetorizados = '/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/dadosVetorizados/audios_vetorizados'
 
-    def extrairDataFramesVocabulario(self, arquivo):
+    dic_audio = {}
 
-        self.data_frames.append(pd.read_csv(os.path.join(self.path_audios_vetorizados, f'{arquivo}'), header=None))
-        self.vocabulario.append(arquivo.replace('.csv', ''))
+    def extrairDataFrames(self, nome_arquivo):
+
+        dataFrame = pd.read_csv(os.path.join(self.path_audios_vetorizados, f'{nome_arquivo}.csv'), header=None)
+        self.dic_audio[nome_arquivo] = dataFrame.values
+
+
 
     data = None
 
-    def concatenarDataFrames(self, data_frame):
 
-        self.data = pd.concat(data_frame)
-
-    def obter_conjuntos_treinamento_validacao(self, modo_debug=False):
+    def obter_conjuntos_treinamento_validacao_arquivo_CSV(self, modo_debug=True):
         '''
 
         https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
@@ -280,33 +332,82 @@ class TreinaModelo(object):
         # https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.read_csv.html
         # https://www.kdnuggets.com/2020/02/audio-data-analysis-deep-learning-python-part-1.html
 
-        arquivos = [arquivo for arquivo in os.listdir(self.path_audios_vetorizados)]
+        arquivos = [arquivo.replace('.csv', '') for arquivo in os.listdir(self.path_audios_vetorizados)]
         print('Iniciando extração de DataFrames a partir de arquivos CSV')
+        self.vocabulario = self.ALFABETO_YORUBÁ_SEM_DIACRÍTICOS + self.ALFABETO_YORUBÁ_COM_DIACRÍTICOS_CARACTERES_ESPECIAIS
+
+        #self.tokenizer.fit_on_texts(self.vocabulario)
+
+        self.vetorizar_labels(arquivos)
+
         if not modo_debug:
             Paralelizacao().executarMetodoParalelo(self.extrairDataFramesVocabulario, arquivos)
         if modo_debug:
             Sequencial().executarMetodoEmSequencia(self.extrairDataFramesVocabulario, arquivos)
+
+        data = pd.DataFrame(self.dic_audio)
+        #Y = self.vetorizador_text_sequence(self.vocabulario)
+
         print('Iniciando concatenação de DataFrames')
-        if not modo_debug:
-            Paralelizacao().executarMetodoParalelo(self.concatenarDataFrames, self.data_frames)
-        if modo_debug:
-            Sequencial().executarMetodoEmSequencia(self.concatenarDataFrames, self.data_frames)
+        #data = pd.concat(self.data_frames)
+        #data_y = pd.DataFrame(np.array(self.vetorizador_text_sequence(self.vocabulario)))
 
+        '''
         vetorizador = CountVectorizer()
-        y = vetorizador.fit_transform(self.vocabulario)
-        scaler = StandardScaler()
+        vetorizador.fit(self.vocabulario)
+        labels = [vetorizador.transform([label]) for label in self.vocabulario]
+        #scaler = StandardScaler()
+        '''
 
-        X = scaler.fit_transform(np.array(self.data, dtype=float))
+        # X = scaler.fit_transform(np.array(data, dtype=float))
 
+        # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
+        X = np.array(data)
+        # https://stackoverflow.com/questions/7372316/how-to-make-a-2d-numpy-array-a-3d-array
+        from numpy import newaxis
+        #X = np.expand_dims(X, axis=2)
+        # Transforma X (2D) para 3D
+        X = X[:, :, newaxis]
+        #https://stackoverflow.com/questions/31521170/scikit-learn-train-test-split-with-indices
+        #X = pd.DataFrame(data)
+
+        # https://stackoverflow.com/questions/47202182/train-test-split-without-using-scikit-learn/47202397
+        #indices = range(X.shape[0])
+        num_training_instances = int(0.8 * X.shape[0])
+        num_test_instances = int(0.2 * X.shape[0])
+        #np.random.shuffle(indices)
+        train_indices = X[:num_training_instances]
+        #test_indices = indices[num_training_instances:]
+
+        # split the actual data
+        X_train, X_test = X[:num_training_instances], X[num_training_instances:]
+        #Y_train, Y_test = data_y[:num_training_instances/10], data_y[num_training_instances/10:]
+
+
+        # https://stackoverflow.com/questions/47202182/train-test-split-without-using-scikit-learn/47202397
+
+
+        '''
         # https://github.com/aravindpai/Speech-Recognition/blob/master/Speech%20Recognition.ipynb
         X_train, X_test, y_train, y_test = train_test_split(X,
                                                             y,
-                                                            stratify=self.vocabulario,
+                                                            #stratify=self.vocabulario,
                                                             test_size=0.2,
                                                             random_state=777,
                                                             shuffle=True)
 
+        #FIZ UMA ALTERAÇÃO NO ARQUIVO 
+        #/home/usuario/mestrado/yorubaSpeechRecognition_RECOVERY/environmentYorubaSpeechRecognition/lib/python3.6/site-packages/sklearn/utils/validation.py do 
+        #Linhas 255-259 para desconsiderar um erro de validação
+        #Linha indexable - Linha 294 - comentada
+
+        '''
+        y_train, y_test = None
+
         return ((X_train, y_train), (X_test, y_test))
+
+
+
 
 
 
@@ -344,13 +445,21 @@ if __name__ == '__main__':
     path = '/home/usuario/mestrado/yorubaSpeechRecognition/treinamento/dadosVetorizados'
     '''
 
-    #processa = PreProcessamento(executarEmParalelo=True)
+    '''
+    processa = PreProcessamento(executarEmParalelo=False)
     #Monitoramento().monitorar_memoria(processa.obterDados, configuracao_paralelizacao=processa.configuracao_paralelismo)
     #processa.obterDados()
-    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao(modo_debug=True)
+    modoDebug = True
+    Monitoramento().monitorar_memoria(treina.obter_conjuntos_treinamento_validacao_arquivo_CSV,
+                                      configuracao_paralelizacao=processa.configuracao_paralelismo,
+                                      argumentos=[modoDebug])
+    
+    '''
 
-    print(X_train.shape)
-    print(y_train.shape)
+    (X_train, y_train), (X_test, y_test) = treina.obter_conjuntos_treinamento_validacao_arquivo_CSV(modo_debug=True)
+
+    #print(X_train.shape)
+    #print(y_train.shape)
 
     tempo_treinamento_modelo = time.clock() - inicio
     print('Tempo total de treinamento do modelo:  {} segundos'.format(tempo_treinamento_modelo))
